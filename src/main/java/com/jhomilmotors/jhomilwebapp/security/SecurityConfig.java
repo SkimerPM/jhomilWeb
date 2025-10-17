@@ -9,6 +9,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableMethodSecurity
@@ -36,13 +37,16 @@ public class SecurityConfig {
                         // Permitir GET a usuarios por email (opcional si quieres que sea público)
                         .requestMatchers(HttpMethod.GET, "/api/usuarios/**").permitAll()
 
+                        .requestMatchers("/login/oauth2/**").permitAll()
+
                         // Proteger rutas de admin
                         .requestMatchers("/admin/dashboard/**").hasAuthority("ROLE_ADMIN")
 
                         // Todo lo demás requiere autenticación
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
+                .oauth2Login(withDefaults());
+                http.addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
