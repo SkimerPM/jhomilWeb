@@ -88,6 +88,35 @@ public class UserService {
         return null;
     }
 
+    public void processOAuthPostLogin(String email, String name, String googleId) {
+        Optional<User> existUser = userRepository.findByEmail(email);
+
+        if (existUser.isEmpty()) {
+            // Si el usuario no existe, lo creamos
+            User newUser = new User();
+
+            // Buscamos y asignamos el rol de cliente
+            Role customerRole = roleRepository.findByNombre(RoleName.CUSTOMER)
+                    .orElseThrow(() -> new EntityNotFoundException("Rol CUSTOMER no encontrado"));
+
+            newUser.setEmail(email);
+            newUser.setNombre(name);
+            newUser.setRol(customerRole);
+            newUser.setMetodoRegistro(RegistrationMethod.GOOGLE); // Lo marcamos como usuario de Google
+            newUser.setGoogleId(googleId);
+            newUser.setActivo(true);
+            newUser.setFechaRegistro(LocalDateTime.now());
+            // El passwordHash queda en null porque la autenticación es con Google
+
+            userRepository.save(newUser);
+        } else {
+            // Si el usuario ya existe, actualizamos su fecha de último acceso
+            User user = existUser.get();
+            user.setUltimoAcceso(LocalDateTime.now());
+            userRepository.save(user);
+        }
+    }
+
     public User registerAdmin(AdminRegistrationDTO dto) {
         // Verifica que el rol enviado en el DTO sea "ADMIN"
         if (!"ADMIN".equals(dto.getRole())) {
