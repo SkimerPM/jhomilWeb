@@ -20,7 +20,7 @@ public class AdminUserController {
 
     // Endpoint protegido por Spring Security usando @PreAuthorize
     @PostMapping("/register-admin")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<User> registerAdmin(@Valid @RequestBody AdminRegistrationDTO dto) {
         User newAdmin = userService.registerAdmin(dto);
         return ResponseEntity.ok(newAdmin);

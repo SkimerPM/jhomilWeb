@@ -34,15 +34,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/usuarios").permitAll()
 
                         // Permitir GET a usuarios por email (opcional si quieres que sea público)
-                        .requestMatchers(HttpMethod.GET, "/api/usuarios/**").permitAll()
+//                        .requestMatchers(HttpMethod.GET, "/api/usuarios/**").permitAll()
 
                         // Proteger rutas de admin
                         .requestMatchers("/admin/dashboard/**").hasAuthority("ROLE_ADMIN")
 
                         // Todo lo demás requiere autenticación
                         .anyRequest().authenticated()
-                )
-                .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
+                );
+        http.addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

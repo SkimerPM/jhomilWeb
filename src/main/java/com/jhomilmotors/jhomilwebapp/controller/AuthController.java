@@ -1,46 +1,80 @@
 package com.jhomilmotors.jhomilwebapp.controller;
 
-import com.jhomilmotors.jhomilwebapp.dto.LoginDTO;
+import com.jhomilmotors.jhomilwebapp.dto.*;
 import com.jhomilmotors.jhomilwebapp.entity.User;
-import com.jhomilmotors.jhomilwebapp.security.JwtUtil;
+import com.jhomilmotors.jhomilwebapp.entity.RefreshToken;
 import com.jhomilmotors.jhomilwebapp.service.UserService;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.jhomilmotors.jhomilwebapp.service.RefreshTokenService;
+import com.jhomilmotors.jhomilwebapp.security.JwtUtil;
+import org.springframework.http.*;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-    // Variable renombrada: usuarioService -> userService
+
     private final UserService userService;
     private final JwtUtil jwtUtil;
+    private final RefreshTokenService refreshTokenService;
 
-    // Constructor actualizado
-    public AuthController(UserService userService, JwtUtil jwtUtil) {
+    public AuthController(UserService userService, JwtUtil jwtUtil, RefreshTokenService refreshTokenService) {
         this.userService = userService;
         this.jwtUtil = jwtUtil;
+        this.refreshTokenService = refreshTokenService;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginDTO loginDTO) {
+    public ResponseEntity<AuthResponseDTO> login(@RequestBody LoginDTO loginDTO) {
         User user = userService.validateLogin(loginDTO.getEmail(), loginDTO.getPassword());
         if (user == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciales incorrectas");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        // Claims usa nombres en inglés (role) y entidad User.
-        Map<String, Object> claims = Map.of("role", user.getRol().getNombre());
-        String token = jwtUtil.generateToken(claims, user.getEmail());
+        Map<String, Object> claims = Map.of("role", user.getRol().getNombre().name());
+        String accessToken = jwtUtil.generateToken(claims, user.getEmail());
 
-        return ResponseEntity.ok(Map.of(
-                "token", token,
-                "email", user.getEmail(),
-                "role", user.getRol().getNombre()
-        ));
+        RefreshToken refreshTokenObj = refreshTokenService.createRefreshToken(user);
+
+        AuthResponseDTO response = new AuthResponseDTO(
+                accessToken,
+                refreshTokenObj.getToken(),
+                user.getEmail(),
+                user.getRol().getNombre().name()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponseDTO> refresh(@RequestBody RefreshRequestDTO request) {
+        var refreshOpt = refreshTokenService.findByToken(request.getRefreshToken());
+        if (refreshOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        RefreshToken refreshToken = refreshOpt.get();
+
+        if (refreshToken.getExpires().isBefore(java.time.LocalDateTime.now()) || refreshToken.isRevoked()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        User user = refreshToken.getUser();
+        Map<String, Object> claims = Map.of("role", user.getRol().getNombre().name());
+        String newAccessToken = jwtUtil.generateToken(claims, user.getEmail());
+
+        AuthResponseDTO response = new AuthResponseDTO(
+                newAccessToken,
+                refreshToken.getToken(),
+                user.getEmail(),
+                user.getRol().getNombre().name()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestBody LogoutRequestDTO request) {
+        var refreshOpt = refreshTokenService.findByToken(request.getRefreshToken());
+        refreshOpt.ifPresent(refreshTokenService::revokeRefreshToken);
+        return ResponseEntity.ok(Map.of("message", "Logout exitoso"));
     }
 }

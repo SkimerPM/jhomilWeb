@@ -50,6 +50,6 @@ public class JwtUtil {
     }
 
     public boolean isTokenExpired(String token) {
-        return extractAllClaims(token).getExpiration().before(new Date());
+        return  extractAllClaims(token).getExpiration().before(new Date());
     }
 }
