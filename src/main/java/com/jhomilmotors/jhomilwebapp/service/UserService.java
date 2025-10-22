@@ -80,8 +80,8 @@ public class UserService {
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
-            // Asume que password_hash ya está encriptado con BCrypt
-            if (new BCryptPasswordEncoder().matches(password, user.getPasswordHash())) {
+
+            if (passwordEncoder.matches(password, user.getPasswordHash())) {
                 return user;
             }
         }

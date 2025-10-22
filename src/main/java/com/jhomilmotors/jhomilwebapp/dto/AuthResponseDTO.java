@@ -8,13 +8,12 @@ import lombok.Setter;
 @Setter
 public class AuthResponseDTO {
     private String accessToken;
-    private String refreshToken;
     private String email;
     private String role;
 
-    public AuthResponseDTO(String accessToken, String refreshToken, String email, String role) {
+    public AuthResponseDTO(String accessToken, String email, String role) {
         this.accessToken = accessToken;
-        this.refreshToken = refreshToken;
+//        this.refreshToken = refreshToken; (ya no ya, se hace por httpOnly, más seguro uwu)
         this.email = email;
         this.role = role;
     }

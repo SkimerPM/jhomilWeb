@@ -31,15 +31,17 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
+                .cors(withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/usuarios").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
 
                         // Permitir GET a usuarios por email (opcional si quieres que sea público)
-                        .requestMatchers(HttpMethod.GET, "/api/usuarios/**").permitAll()
+//                        .requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
 
                         .requestMatchers("/login/oauth2/**").permitAll()
 
+                        .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
                         // Proteger rutas de admin
                         .requestMatchers("/admin/dashboard/**").hasAuthority("ROLE_ADMIN")
 
