@@ -33,11 +33,15 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(withDefaults())
                 .authorizeHttpRequests(auth -> auth
+
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
 
                         // Permitir GET a usuarios por email (opcional si quieres que sea público)
 //                        .requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
+
+                        //para productos metod get
+                        .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").permitAll()
 
                         .requestMatchers("/login/oauth2/**").permitAll()
 
