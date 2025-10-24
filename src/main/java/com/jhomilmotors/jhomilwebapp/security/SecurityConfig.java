@@ -32,11 +32,15 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/usuarios").permitAll()
 
                         // Permitir GET a usuarios por email (opcional si quieres que sea público)
                         .requestMatchers(HttpMethod.GET, "/api/usuarios/**").permitAll()
+
+                        //para productos metod get
+                        .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").permitAll()
 
                         .requestMatchers("/login/oauth2/**").permitAll()
 
