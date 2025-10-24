@@ -21,32 +21,21 @@ public class CatalogController {
     @Autowired
     private CatalogService catalogService;
 
-    /**
-     * Endpoint unificado que devuelve todos los datos necesarios para la página de inicio/catálogo.
-     */
     @GetMapping
     public Map<String, Object> getHomePageData() {
-
         List<ProductCatalogResponse> allProducts = catalogService.findAllCatalogProducts();
 
-        // Lógica de filtrado de ofertas y más vendidos (ejemplo simple)
-        List<ProductCatalogResponse> productsInOffer = allProducts.stream()
-                .limit(4) // Simulación: tomamos los 4 primeros
-                .collect(Collectors.toList());
+        // Simulación para “más vendidos” y “en oferta”
+        // (Cambia la lógica cuando tengas ventas reales o promos)
+        List<ProductCatalogResponse> bestSellers = allProducts.stream().limit(4).collect(Collectors.toList());
+        List<ProductCatalogResponse> offers = allProducts.stream().skip(1).limit(4).collect(Collectors.toList());
 
-        List<ProductCatalogResponse> mostSold = allProducts.stream()
-                .sorted((p1, p2) -> p2.getId().compareTo(p1.getId()))
-                .limit(4)
-                .collect(Collectors.toList());
-
-        // Empaquetar la respuesta JSON
         Map<String, Object> responseData = new HashMap<>();
-        responseData.put("productos", allProducts);
-        responseData.put("productosEnOferta", productsInOffer);
-        responseData.put("productosMasVendidos", mostSold);
+        responseData.put("productos", allProducts); // Catálogo general
+        responseData.put("productosMasVendidos", bestSellers); // Fila especial
+        responseData.put("productosEnOferta", offers); // Fila especial
         responseData.put("categorias", catalogService.findAllCategories());
         responseData.put("marcas", catalogService.findAllBrands());
-
         return responseData;
     }
 }

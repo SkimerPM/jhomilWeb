@@ -20,6 +20,12 @@ public class CatalogService {
     @Autowired private BrandRepository brandRepository;
     @Autowired private ImageRepository imageRepository;
 
+
+
+    public List<Product> findAllProductEntities() {
+        return productRepository.findAllEntities();
+    }
+
     // --- Métodos de Mapeo y Lógica ---
 
     private ProductCatalogResponse mapProductToCatalogResponse(Product product) {
@@ -55,11 +61,19 @@ public class CatalogService {
     // --- Métodos de Exposición al Controlador ---
 
     public List<ProductCatalogResponse> findAllCatalogProducts() {
-        // En un ambiente real, se debe optimizar para evitar el problema de N+1 consultas.
-        // Aquí cargamos todos los productos activos.
-        return productRepository.findAll().stream()
-                .filter(Product::getActivo)
-                .map(this::mapProductToCatalogResponse)
+        return productRepository.findAllEntities().stream()
+                .map(product -> ProductCatalogResponse.builder()
+                        .id(product.getId())
+                        .nombre(product.getNombre())
+                        .descripcion(product.getDescripcion())
+                        .precioBase(product.getPrecioBase())
+                        .stockTotal(0L) // ...o como calcules tu stock
+                        .imagenUrl("") // ...o como obtengas la url
+                        .categoriaId(product.getCategory().getId())
+                        .categoriaNombre(product.getCategory().getNombre())
+                        .marcaId(product.getBrand().getId())
+                        .marcaNombre(product.getBrand().getNombre())
+                        .build())
                 .collect(Collectors.toList());
     }
 

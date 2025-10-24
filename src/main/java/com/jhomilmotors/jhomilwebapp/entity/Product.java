@@ -13,21 +13,29 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Relaciones (Foreign Keys de Django)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "categoria_id") // Nombre de la columna FK
+    @JoinColumn(name = "categoria_id")
     private Category category;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "marca_id") // Nombre de la columna FK
+    @JoinColumn(name = "marca_id")
     private Brand brand;
 
-    // Campos directos
+    @Column(name="nombre") // <-- ¡aunque no tenga guion bajo!
     private String nombre;
+
+    @Column(name="descripcion")
     private String descripcion;
-    private String skuBase; // Mapea a sku_base
-    private BigDecimal precioBase; // Mapea a precio_base
+
+    @Column(name="sku_base")
+    private String skuBase;
+
+    @Column(name = "precio_base")
+    private BigDecimal precioBase;
+
+    @Column(name="activo")
     private Boolean activo;
+
+    @Column(name="fecha_creacion")
     private LocalDateTime fechaCreacion;
-    // ... otros campos como peso_kg, volumen_m3 si son necesarios en otras partes.
 }
