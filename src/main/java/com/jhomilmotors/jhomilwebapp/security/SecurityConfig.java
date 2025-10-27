@@ -42,8 +42,10 @@ public class SecurityConfig {
 
                         //para productos metod get
                         .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/productos/**").permitAll()
 
-                        .requestMatchers("/login/oauth2/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/buscar**").permitAll()
+                                .requestMatchers("/login/oauth2/**").permitAll()
 
                         .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
                         // Proteger rutas de admin
