@@ -40,8 +40,11 @@ public class SecurityConfig {
                                 // Permitir GET a usuarios por email (opcional si quieres que sea público)
 //                        .requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
 
-                                //para productos metod get
-                                .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").permitAll()
+                        //para productos metod get
+                        .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/productos/**").permitAll()
+
+                                .requestMatchers(HttpMethod.GET, "/api/v1/buscar**").permitAll()
 
                                 .requestMatchers("/login/oauth2/**").permitAll()
 
