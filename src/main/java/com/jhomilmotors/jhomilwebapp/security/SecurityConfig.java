@@ -47,11 +47,20 @@ public class SecurityConfig {
                                 .requestMatchers(HttpMethod.GET, "/api/v1/buscar**").permitAll()
                                 .requestMatchers("/login/oauth2/**").permitAll()
 
-                        .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
+
+                                .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
                         // Proteger rutas de admin
                         .requestMatchers("/admin/dashboard/**").hasAuthority("ROLE_ADMIN")
 
-                        // Todo lo demás requiere autenticación
+                        //rutas admin pero de gestion de usuarios:
+                                .requestMatchers(HttpMethod.PUT, "/api/users/**").hasAuthority("ROLE_ADMIN")
+                                .requestMatchers(HttpMethod.PATCH, "/api/users/**").hasAuthority("ROLE_ADMIN")
+                                .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasAuthority("ROLE_ADMIN")
+                                .requestMatchers(HttpMethod.GET, "/api/users/**").hasAuthority("ROLE_ADMIN")
+
+
+
+                                // Todo lo demás requiere autenticación
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> {

@@ -1,6 +1,7 @@
 package com.jhomilmotors.jhomilwebapp.service;
 
 import com.jhomilmotors.jhomilwebapp.dto.AdminRegistrationDTO;
+import com.jhomilmotors.jhomilwebapp.dto.UserProfileDTO;
 import com.jhomilmotors.jhomilwebapp.dto.UserRegistrationDTO;
 import com.jhomilmotors.jhomilwebapp.entity.Role;
 import com.jhomilmotors.jhomilwebapp.entity.User;
@@ -14,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -146,5 +148,30 @@ public class UserService {
 
         return userRepository.save(user);
     }
+
+    public List<User> listAll() {
+        return userRepository.findAll();
+    }
+
+    //ususario por id:
+    public User findById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+    }
+
+    public User actualizar(Long id, UserProfileDTO datos) {
+        User user = userRepository.findById(id).orElseThrow();
+        user.setNombre(datos.nombre());
+        user.setEmail(datos.email());
+        // se pueden considerar más..
+        return userRepository.save(user);
+    }
+
+    public User actualizarEstado(Long id, boolean activo) {
+        User user = userRepository.findById(id).orElseThrow();
+        user.setActivo(activo);
+        return userRepository.save(user);
+    }
+
 
 }
