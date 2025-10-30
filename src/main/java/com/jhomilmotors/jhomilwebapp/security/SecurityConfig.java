@@ -34,27 +34,25 @@ public class SecurityConfig {
                 .cors(withDefaults())
                 .authorizeHttpRequests(auth -> auth
 
-                                .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                                .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
 
-                                // Permitir GET a usuarios por email (opcional si quieres que sea público)
+                        // Permitir GET a usuarios por email (opcional si quieres que sea público)
 //                        .requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
 
-                                //para productos metod get
-                                .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").permitAll()
+                        //para productos metod get
+                        .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/v1/productos/**").permitAll()
 
                                 .requestMatchers(HttpMethod.GET, "/api/v1/buscar**").permitAll()
-
                                 .requestMatchers("/login/oauth2/**").permitAll()
 
 
-
                                 .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
-                                // Proteger rutas de admin
-                                .requestMatchers("/admin/dashboard/**").hasAuthority("ROLE_ADMIN")
+                        // Proteger rutas de admin
+                        .requestMatchers("/admin/dashboard/**").hasAuthority("ROLE_ADMIN")
 
-                                //rutas admin pero de gestion de usuarios:
+                        //rutas admin pero de gestion de usuarios:
                                 .requestMatchers(HttpMethod.PUT, "/api/users/**").hasAuthority("ROLE_ADMIN")
                                 .requestMatchers(HttpMethod.PATCH, "/api/users/**").hasAuthority("ROLE_ADMIN")
                                 .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasAuthority("ROLE_ADMIN")
@@ -63,20 +61,12 @@ public class SecurityConfig {
 
 
                                 // Todo lo demás requiere autenticación
-                                .anyRequest().authenticated()
-                                .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
-                                // Proteger rutas de admin
-                                .requestMatchers("/admin/dashboard/**").hasAuthority("ROLE_ADMIN")
-
-
-                                // Todo lo demás requiere autenticación
-                                .anyRequest().authenticated()
-
+                        .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> {
                     oauth2.successHandler(oAuth2LoginSuccessHandler);
                 });
-        http.addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
+                http.addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
