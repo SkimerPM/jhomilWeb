@@ -1,5 +1,7 @@
 package com.jhomilmotors.jhomilwebapp.security;
 
+import com.jhomilmotors.jhomilwebapp.entity.User;
+import com.jhomilmotors.jhomilwebapp.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,9 +22,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthFilter.class);
 
     private final JwtUtil jwtUtil;
+    private final UserRepository userRepository;
 
-    public JwtAuthFilter(JwtUtil jwtUtil) {
+    public JwtAuthFilter(JwtUtil jwtUtil, UserRepository userRepository) {
         this.jwtUtil = jwtUtil;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -47,12 +51,31 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 return;
             }
 
-            String email = jwtUtil.extractUsername(token);
+            // Puede ser email O google_id
+            String userIdentifier = jwtUtil.extractUsername(token);
             String role = jwtUtil.extractRole(token);
+
+            // Buscar por email si parece email, sino por google_id
+            User user = null;
+            if (userIdentifier != null && userIdentifier.contains("@")) {
+                logger.info("Buscando por email: " + userIdentifier);
+                user = userRepository.findByEmail(userIdentifier).orElse(null);
+
+            } else {
+                logger.info("Buscando por google_id: " + userIdentifier);
+                user = userRepository.findByGoogleId(userIdentifier).orElse(null);
+
+            }
+
+            if (user == null) {
+                logger.error("Usuario no encontrado: {}", userIdentifier);
+                filterChain.doFilter(request, response);
+                return;
+            }
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
-                            email,
+                            userIdentifier, // puedes pasar el User completo si lo usas luego
                             null,
                             Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
                     );

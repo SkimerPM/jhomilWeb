@@ -65,6 +65,11 @@ public class UserService {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new EntityNotFoundException("Usuario con email '" + email + "' no encontrado"));
     }
+    public User findByGoogleId(String googleId) {
+        return userRepository.findByGoogleId(googleId)
+                .orElseThrow(() -> new EntityNotFoundException("Usuario con googleId '" + googleId + "' no encontrado"));
+    }
+
 
     public void updateLastAccess(Long userId) {
         userRepository.findById(userId).ifPresent(user -> {
@@ -112,12 +117,17 @@ public class UserService {
 
             userRepository.save(newUser);
         } else {
-            // Si el usuario ya existe, actualizamos su fecha de último acceso
+            // Si el usuario existe, actualiza googleId y método de registro SI vienen del login Google
             User user = existUser.get();
             user.setUltimoAcceso(LocalDateTime.now());
+            if (user.getGoogleId() == null || !user.getGoogleId().equals(googleId)) {
+                user.setGoogleId(googleId);
+                user.setMetodoRegistro(RegistrationMethod.GOOGLE);
+            }
             userRepository.save(user);
         }
     }
+
 
     public User registerAdmin(AdminRegistrationDTO dto) {
         // Verifica que el rol enviado en el DTO sea "ADMIN"

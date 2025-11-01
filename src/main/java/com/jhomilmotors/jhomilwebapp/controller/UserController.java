@@ -28,13 +28,21 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<UserProfileDTO> getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication.getName();  // Aquí tendrás el email correctamente
-        User user = userService.findByEmail(email);
+        String identifier = authentication.getName();  // Puede ser email o googleId
+
+        User user;
+        if (identifier != null && identifier.contains("@")) {
+            user = userService.findByEmail(identifier);
+        } else {
+            user = userService.findByGoogleId(identifier);
+        }
+
         UserProfileDTO dto = new UserProfileDTO(
                 user.getNombre(), user.getEmail(), user.getRol().getNombre().name()
         );
         return ResponseEntity.ok(dto);
     }
+
 
     @PostMapping
     public ResponseEntity<User> registerUser(@RequestBody @Valid UserRegistrationDTO request) {
