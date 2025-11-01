@@ -39,7 +39,21 @@ public class SecurityConfig {
 
                                 // Permitir GET a usuarios por email (opcional si quieres que sea público)
 //                        .requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
+                                // Promociones: permitir GET a todos, proteger POST/PUT/DELETE solo para ADMIN
+                                .requestMatchers(HttpMethod.GET, "/api/promotions/**").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/promotions/**").hasAuthority("ROLE_ADMIN")
+                                .requestMatchers(HttpMethod.PUT, "/api/promotions/**").hasAuthority("ROLE_ADMIN")
+                                .requestMatchers(HttpMethod.DELETE, "/api/promotions/**").hasAuthority("ROLE_ADMIN")
 
+                                // PromotionProduct: permitir GET a todos, proteger modificaciones solo para ADMIN
+                                .requestMatchers(HttpMethod.GET, "/api/promotion-products/**").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/promotion-products/**").hasAuthority("ROLE_ADMIN")
+                                .requestMatchers(HttpMethod.PUT, "/api/promotion-products/**").hasAuthority("ROLE_ADMIN")
+                                .requestMatchers(HttpMethod.DELETE, "/api/promotion-products/**").hasAuthority("ROLE_ADMIN")
+
+                                // Purchases y suppliers SOLO ADMIN
+                                .requestMatchers("/api/purchases/**").hasAuthority("ROLE_ADMIN")
+                                .requestMatchers("/api/suppliers/**").hasAuthority("ROLE_ADMIN")
                         //para productos metod get
                         .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/v1/productos/**").permitAll()
