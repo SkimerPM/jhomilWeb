@@ -10,14 +10,17 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.Map;
 
 @Component
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private final UserService userService;
+    private final JwtUtil jwtUtil;
 
-    public OAuth2LoginSuccessHandler(UserService userService) {
+    public OAuth2LoginSuccessHandler(UserService userService, JwtUtil jwtUtil) {
         this.userService = userService;
+        this.jwtUtil = jwtUtil;
     }
 
     @Override
@@ -28,10 +31,21 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         String name = oauthUser.getAttribute("name");
         String googleId = oauthUser.getAttribute("sub");
 
-        // Llama a tu servicio para crear o actualizar el usuario en la BD
+        // Actualiza o crea el usuario Google en la BD
         userService.processOAuthPostLogin(email, name, googleId);
 
-        // Redirige al usuario a tu frontend de React
-        response.sendRedirect("http://localhost:5173");
+        // Busca el usuario completo
+        com.jhomilmotors.jhomilwebapp.entity.User user = userService.findByEmail(email);
+
+        // Genera el JWT con googleId como subject si existe
+        String subject = (user.getGoogleId() != null && !user.getGoogleId().isBlank())
+                ? user.getGoogleId()
+                : user.getEmail();
+
+        Map<String, Object> claims = Map.of("role", user.getRol().getNombre().name());
+        String accessToken = jwtUtil.generateToken(claims, subject);
+
+        // Redirige a la ruta especial del frontend con el accessToken en query param
+        response.sendRedirect("http://localhost:5173/oauth2-callback?token=" + accessToken);
     }
 }
