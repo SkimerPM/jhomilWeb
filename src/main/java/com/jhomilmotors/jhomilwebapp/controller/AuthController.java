@@ -35,21 +35,22 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        // Genera el access token
-        Map<String, Object> claims = Map.of("role", user.getRol().getNombre().name());
-        String accessToken = jwtUtil.generateToken(claims, user.getEmail());
+        // Use googleId si existe, sino email
+        String subject = (user.getGoogleId() != null && !user.getGoogleId().isBlank())
+                ? user.getGoogleId()
+                : user.getEmail();
 
-        // Genera y guarda el refresh token en BD
+        Map<String, Object> claims = Map.of("role", user.getRol().getNombre().name());
+        String accessToken = jwtUtil.generateToken(claims, subject);
+
         RefreshToken refreshTokenObj = refreshTokenService.createRefreshToken(user);
 
-        // Crea la cookie httpOnly con el refresh token
         Cookie refreshCookie = new Cookie("refreshToken", refreshTokenObj.getToken());
         refreshCookie.setHttpOnly(true);
-        refreshCookie.setPath("/api/auth/refresh"); // solo se envía a /refresh
+        refreshCookie.setPath("/api/auth/refresh");
         refreshCookie.setMaxAge(7 * 24 * 60 * 60); // 7 días
         response.addCookie(refreshCookie);
 
-        // No envíes el refresh token en el body, SOLO en la cookie
         AuthResponseDTO dto = new AuthResponseDTO(
                 accessToken,
                 user.getEmail(),
@@ -61,8 +62,6 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponseDTO> refresh(HttpServletRequest request, HttpServletResponse response) {
         String refreshToken = null;
-
-        // Obtén el refresh token de la cookie
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
                 if ("refreshToken".equals(cookie.getName())) {
@@ -86,17 +85,23 @@ public class AuthController {
         }
 
         User user = refreshTokenObj.getUser();
+
+        // Igual: usa googleId si existe
+        String subject = (user.getGoogleId() != null && !user.getGoogleId().isBlank())
+                ? user.getGoogleId()
+                : user.getEmail();
+
         Map<String, Object> claims = Map.of("role", user.getRol().getNombre().name());
-        String newAccessToken = jwtUtil.generateToken(claims, user.getEmail());
+        String newAccessToken = jwtUtil.generateToken(claims, subject);
 
         AuthResponseDTO dto = new AuthResponseDTO(
                 newAccessToken,
-                // se eliminó refresh tokend de la respuesta.
                 user.getEmail(),
                 user.getRol().getNombre().name()
         );
         return ResponseEntity.ok(dto);
     }
+
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {

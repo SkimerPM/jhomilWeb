@@ -1,5 +1,7 @@
 package com.jhomilmotors.jhomilwebapp.security;
 
+import com.jhomilmotors.jhomilwebapp.repository.UserRepository;
+import com.jhomilmotors.jhomilwebapp.service.UserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -23,12 +25,18 @@ public class SecurityConfig {
     }
 
     @Bean
-    public JwtAuthFilter jwtAuthFilter() {
-        return new JwtAuthFilter(jwtUtil);
+    public OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler(UserService userService, JwtUtil jwtUtil) {
+        return new OAuth2LoginSuccessHandler(userService, jwtUtil);
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public JwtAuthFilter jwtAuthFilter(UserRepository userRepository) {
+        return new JwtAuthFilter(jwtUtil, userRepository);
+    }
+
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http, UserRepository userRepository) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(withDefaults())
@@ -39,7 +47,21 @@ public class SecurityConfig {
 
                         // Permitir GET a usuarios por email (opcional si quieres que sea público)
 //                        .requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
+                                // Promociones: permitir GET a todos, proteger POST/PUT/DELETE solo para ADMIN
+                                .requestMatchers(HttpMethod.GET, "/api/promotions/**").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/promotions/**").hasAuthority("ROLE_ADMIN")
+                                .requestMatchers(HttpMethod.PUT, "/api/promotions/**").hasAuthority("ROLE_ADMIN")
+                                .requestMatchers(HttpMethod.DELETE, "/api/promotions/**").hasAuthority("ROLE_ADMIN")
 
+                                // PromotionProduct: permitir GET a todos, proteger modificaciones solo para ADMIN
+                                .requestMatchers(HttpMethod.GET, "/api/promotion-products/**").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/promotion-products/**").hasAuthority("ROLE_ADMIN")
+                                .requestMatchers(HttpMethod.PUT, "/api/promotion-products/**").hasAuthority("ROLE_ADMIN")
+                                .requestMatchers(HttpMethod.DELETE, "/api/promotion-products/**").hasAuthority("ROLE_ADMIN")
+
+                                // Purchases y suppliers SOLO ADMIN
+                                .requestMatchers("/api/purchases/**").hasAuthority("ROLE_ADMIN")
+                                .requestMatchers("/api/suppliers/**").hasAuthority("ROLE_ADMIN")
                         //para productos metod get
                         .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/v1/productos/**").permitAll()
@@ -66,7 +88,9 @@ public class SecurityConfig {
                 .oauth2Login(oauth2 -> {
                     oauth2.successHandler(oAuth2LoginSuccessHandler);
                 });
-                http.addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
+
+        http.addFilterBefore(jwtAuthFilter(userRepository), UsernamePasswordAuthenticationFilter.class);
+
 
         return http.build();
     }

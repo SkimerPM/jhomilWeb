@@ -1,8 +1,6 @@
 package com.jhomilmotors.jhomilwebapp.service;
 
-import com.jhomilmotors.jhomilwebapp.dto.AdminRegistrationDTO;
-import com.jhomilmotors.jhomilwebapp.dto.UserProfileDTO;
-import com.jhomilmotors.jhomilwebapp.dto.UserRegistrationDTO;
+import com.jhomilmotors.jhomilwebapp.dto.*;
 import com.jhomilmotors.jhomilwebapp.entity.Role;
 import com.jhomilmotors.jhomilwebapp.entity.User;
 import com.jhomilmotors.jhomilwebapp.enums.RegistrationMethod;
@@ -10,9 +8,12 @@ import com.jhomilmotors.jhomilwebapp.enums.RoleName;
 import com.jhomilmotors.jhomilwebapp.repository.RoleRepository;
 import com.jhomilmotors.jhomilwebapp.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -65,6 +66,11 @@ public class UserService {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new EntityNotFoundException("Usuario con email '" + email + "' no encontrado"));
     }
+    public User findByGoogleId(String googleId) {
+        return userRepository.findByGoogleId(googleId)
+                .orElseThrow(() -> new EntityNotFoundException("Usuario con googleId '" + googleId + "' no encontrado"));
+    }
+
 
     public void updateLastAccess(Long userId) {
         userRepository.findById(userId).ifPresent(user -> {
@@ -112,12 +118,17 @@ public class UserService {
 
             userRepository.save(newUser);
         } else {
-            // Si el usuario ya existe, actualizamos su fecha de último acceso
+            // Si el usuario existe, actualiza googleId y método de registro SI vienen del login Google
             User user = existUser.get();
             user.setUltimoAcceso(LocalDateTime.now());
+            if (user.getGoogleId() == null || !user.getGoogleId().equals(googleId)) {
+                user.setGoogleId(googleId);
+                user.setMetodoRegistro(RegistrationMethod.GOOGLE);
+            }
             userRepository.save(user);
         }
     }
+
 
     public User registerAdmin(AdminRegistrationDTO dto) {
         // Verifica que el rol enviado en el DTO sea "ADMIN"
@@ -149,9 +160,24 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public List<User> listAll() {
-        return userRepository.findAll();
-    }
+//    public List<User> listAll() {
+//        return userRepository.findAll();
+//    }
+        public Page<AdminUserListResponseDTO> listAll(Pageable pageable) {
+            return userRepository.findAll(pageable)
+            .map(u -> new AdminUserListResponseDTO(
+                    u.getId(),
+                    u.getRol().getNombre().name(),
+                    u.getNombre(),
+                    u.getApellido(),
+                    u.getEmail(),
+                    u.getTelefono(),
+                    u.getDocumento(),
+                    u.isActivo(),
+                    u.getFechaRegistro(),
+                    u.getUltimoAcceso()
+            ));
+        }
 
     //ususario por id:
     public User findById(Long id) {
@@ -171,6 +197,24 @@ public class UserService {
         User user = userRepository.findById(id).orElseThrow();
         user.setActivo(activo);
         return userRepository.save(user);
+    }
+
+    @Transactional
+    public void updateUserFromAdmin(Long id, AdminUserFormUpdate dto) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+
+        // Actualiza SOLO los campos permitidos
+        user.setNombre(dto.getNombre());
+        user.setApellido(dto.getApellido());
+        user.setEmail(dto.getEmail());
+        user.setTelefono(dto.getTelefono());
+        user.setActivo(dto.isActivo());
+        user.setDocumento(dto.getDocumento());
+
+        // No se actualizan: documento, passwordHash, metodoRegistro, rol, googleId, fotoPerfil, fechaRegistro, ultimoAcceso
+
+        userRepository.save(user);
     }
 
 

@@ -1,45 +1,22 @@
-package com.jhomilmotors.jhomilwebapp.entity;
+package com.jhomilmotors.jhomilwebapp.dto;
 
-import com.jhomilmotors.jhomilwebapp.enums.DiscountType;
-import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "core_promocion")
-public class Promotion {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+public class PromotionDTO {
     private Long id;
-
-    @Column(length = 150)
     private String nombre;
-
-    @Column(length = 50, unique = true, nullable = true)
     private String codigo;
-
-    @Column(name = "tipo_descuento", length = 20, nullable = false)
-    private DiscountType tipoDescuento;
-
-    @Column(name = "valor_descuento", precision = 8, scale = 2)
-    private BigDecimal valorDescuento = BigDecimal.ZERO;
-
-    @Column(name = "fecha_inicio")
-    private LocalDateTime fechaInicio = LocalDateTime.now();
-
-    @Column(name = "fecha_fin", nullable = true)
+    private String tipoDescuento;
+    private BigDecimal valorDescuento;
+    private LocalDateTime fechaInicio;
     private LocalDateTime fechaFin;
-
-    private Boolean activo = true;
-
-    @Column(name = "min_compra", precision = 12, scale = 2, nullable = true)
+    private Boolean activo;
     private BigDecimal minCompra;
-
-    @Column(name = "max_usos", nullable = true)
     private Integer maxUsos;
 
-    public Promotion() {
+
+    public PromotionDTO() {
     }
 
     public Long getId() {
@@ -66,11 +43,11 @@ public class Promotion {
         this.codigo = codigo;
     }
 
-    public DiscountType getTipoDescuento() {
+    public String getTipoDescuento() {
         return tipoDescuento;
     }
 
-    public void setTipoDescuento(DiscountType tipoDescuento) {
+    public void setTipoDescuento(String tipoDescuento) {
         this.tipoDescuento = tipoDescuento;
     }
 

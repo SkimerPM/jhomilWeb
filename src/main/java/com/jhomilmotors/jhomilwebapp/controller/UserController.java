@@ -28,13 +28,21 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<UserProfileDTO> getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication.getName();  // Aquí tendrás el email correctamente
-        User user = userService.findByEmail(email);
+        String identifier = authentication.getName();  // Puede ser email o googleId
+
+        User user;
+        if (identifier != null && identifier.contains("@")) {
+            user = userService.findByEmail(identifier);
+        } else {
+            user = userService.findByGoogleId(identifier);
+        }
+
         UserProfileDTO dto = new UserProfileDTO(
                 user.getNombre(), user.getEmail(), user.getRol().getNombre().name()
         );
         return ResponseEntity.ok(dto);
     }
+
 
     @PostMapping
     public ResponseEntity<User> registerUser(@RequestBody @Valid UserRegistrationDTO request) {
@@ -42,18 +50,17 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(creado);
     }
 
-    @GetMapping
-    public List<UserProfileDTO> listarUsuarios() {
-        // Puedes usar directamente el entity User, pero ideal es mapearlo a un DTO
-        return userService.listAll()
-                .stream()
-                .map(u -> new UserProfileDTO(
-                        u.getNombre(),
-                        u.getEmail(),
-                        u.getRol().getNombre().name() // Ajusta según tu modelo
-                ))
-                .toList();
-    }
+//    @GetMapping metodo en AdminUserController
+//    public List<UserProfileDTO> listarUsuarios() {
+//        return userService.listAll()
+//                .stream()
+//                .map(u -> new UserProfileDTO(
+//                        u.getNombre(),
+//                        u.getEmail(),
+//                        u.getRol().getNombre().name()
+//                ))
+//                .toList();
+//    }
 
 
     //usuarios por id:
