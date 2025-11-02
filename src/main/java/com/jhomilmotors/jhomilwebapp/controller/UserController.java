@@ -50,18 +50,17 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(creado);
     }
 
-    @GetMapping
-    public List<UserProfileDTO> listarUsuarios() {
-        // Puedes usar directamente el entity User, pero ideal es mapearlo a un DTO
-        return userService.listAll()
-                .stream()
-                .map(u -> new UserProfileDTO(
-                        u.getNombre(),
-                        u.getEmail(),
-                        u.getRol().getNombre().name() // Ajusta según tu modelo
-                ))
-                .toList();
-    }
+//    @GetMapping metodo en AdminUserController
+//    public List<UserProfileDTO> listarUsuarios() {
+//        return userService.listAll()
+//                .stream()
+//                .map(u -> new UserProfileDTO(
+//                        u.getNombre(),
+//                        u.getEmail(),
+//                        u.getRol().getNombre().name()
+//                ))
+//                .toList();
+//    }
 
 
     //usuarios por id:
