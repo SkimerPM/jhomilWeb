@@ -11,6 +11,8 @@ import com.jhomilmotors.jhomilwebapp.repository.ProductVariantRepository;
 import com.jhomilmotors.jhomilwebapp.repository.PromotionProductRepository;
 import com.jhomilmotors.jhomilwebapp.repository.PromotionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -26,7 +28,7 @@ public class PromotionProductService {
     private final ProductVariantRepository productVariantRepository;
 
     // -------------------------------
-    // DTO <-> Entity
+    // DTO <-> Entity (Método de mapeo)
     public PromotionProductDTO toDTO(PromotionProduct entity) {
         PromotionProductDTO dto = new PromotionProductDTO();
         dto.setId(entity.getId());
@@ -40,8 +42,11 @@ public class PromotionProductService {
         return dto;
     }
 
-    // -------------------------------
-    // CRUD
+    // -----------------------------------------------------------
+    // CRUD (Manteniendo la versión List<DTO> para compatibilidad)
+    // -----------------------------------------------------------
+
+    // NOTA: Reemplazamos getAll() por la versión paginada: getAll(Pageable pageable)
     @Transactional(readOnly = true)
     public List<PromotionProductDTO> getAll() {
         return promotionProductRepository.findAll()
@@ -138,73 +143,112 @@ public class PromotionProductService {
         promotionProductRepository.deleteById(id);
     }
 
+    // -----------------------------------------------------------
+    // Consultas Paginadas (Page<DTO>)
+    // -----------------------------------------------------------
 
-
+    /**
+     * 1. Obtiene una página de todas las configuraciones Promoción-Producto.
+     */
     @Transactional(readOnly = true)
-    public List<PromotionProductDTO> getByProduct(Long productId) {
+    public Page<PromotionProductDTO> getAll(Pageable pageable) {
+        return promotionProductRepository.findAll(pageable).map(this::toDTO);
+    }
+
+    /**
+     * 2. Obtiene una página de configuraciones asociadas a un promotionId específico.
+     */
+    @Transactional(readOnly = true)
+    public Page<PromotionProductDTO> getProductsByPromotionId(Long promotionId, Pageable pageable) {
+        Promotion promotion = promotionRepository.findById(promotionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Promoción no encontrada con ID: " + promotionId));
+
+        // Usa el método findByPromocion que definimos en el Repository
+        return promotionProductRepository.findByPromocion(promotion, pageable).map(this::toDTO);
+    }
+
+    // -----------------------------
+    // Por producto (PAGINADO)
+    // -----------------------------
+    @Transactional(readOnly = true)
+    public Page<PromotionProductDTO> getByProduct(Long productId, Pageable pageable) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
-        return promotionProductRepository.findByProducto(product).stream().map(this::toDTO).collect(Collectors.toList());
+        return promotionProductRepository.findByProducto(product, pageable).map(this::toDTO);
     }
 
     @Transactional(readOnly = true)
-    public List<PromotionProductDTO> getActiveByProduct(Long productId) {
+    public Page<PromotionProductDTO> getActiveByProduct(Long productId, Pageable pageable) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
-        return promotionProductRepository.findByProductoAndPromocionActivoTrue(product).stream().map(this::toDTO).collect(Collectors.toList());
+        return promotionProductRepository.findByProductoAndPromocionActivoTrue(product, pageable).map(this::toDTO);
     }
 
     @Transactional(readOnly = true)
-    public List<PromotionProductDTO> getInactiveByProduct(Long productId) {
+    public Page<PromotionProductDTO> getInactiveByProduct(Long productId, Pageable pageable) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
-        return promotionProductRepository.findByProductoAndPromocionActivoFalse(product).stream().map(this::toDTO).collect(Collectors.toList());
+        return promotionProductRepository.findByProductoAndPromocionActivoFalse(product, pageable).map(this::toDTO);
     }
 
+    // -----------------------------
+    // Por variante (PAGINADO)
+    // -----------------------------
     @Transactional(readOnly = true)
-    public List<PromotionProductDTO> getByVariant(Long variantId) {
+    public Page<PromotionProductDTO> getByVariant(Long variantId, Pageable pageable) {
         ProductVariant variant = productVariantRepository.findById(variantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Variante no encontrada"));
-        return promotionProductRepository.findByVariante(variant).stream().map(this::toDTO).collect(Collectors.toList());
+        return promotionProductRepository.findByVariante(variant, pageable).map(this::toDTO);
     }
 
     @Transactional(readOnly = true)
-    public List<PromotionProductDTO> getActiveByVariant(Long variantId) {
+    public Page<PromotionProductDTO> getActiveByVariant(Long variantId, Pageable pageable) {
         ProductVariant variant = productVariantRepository.findById(variantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Variante no encontrada"));
-        return promotionProductRepository.findByVarianteAndPromocionActivoTrue(variant).stream().map(this::toDTO).collect(Collectors.toList());
+        return promotionProductRepository.findByVarianteAndPromocionActivoTrue(variant, pageable).map(this::toDTO);
     }
 
     @Transactional(readOnly = true)
-    public List<PromotionProductDTO> getInactiveByVariant(Long variantId) {
+    public Page<PromotionProductDTO> getInactiveByVariant(Long variantId, Pageable pageable) {
         ProductVariant variant = productVariantRepository.findById(variantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Variante no encontrada"));
-        return promotionProductRepository.findByVarianteAndPromocionActivoFalse(variant).stream().map(this::toDTO).collect(Collectors.toList());
+        return promotionProductRepository.findByVarianteAndPromocionActivoFalse(variant, pageable).map(this::toDTO);
+    }
+
+    // -----------------------------
+    // Otros filtros (PAGINADO)
+    // -----------------------------
+
+    @Transactional(readOnly = true)
+    public Page<PromotionProductDTO> getPromosByRequiredAmount(int cantidad, Pageable pageable) {
+        return promotionProductRepository.findByCantidadRequeridaGreaterThan(cantidad, pageable)
+                .map(this::toDTO);
     }
 
     @Transactional(readOnly = true)
-    public List<PromotionProductDTO> getPromosByRequiredAmount(int cantidad) {
-        return promotionProductRepository.findByCantidadRequeridaGreaterThan(cantidad)
-                .stream().map(this::toDTO).collect(Collectors.toList());
+    public Page<PromotionProductDTO> getPromosWithProductGift(Pageable pageable) {
+        return promotionProductRepository.findByProductoGratisIsNotNull(pageable).map(this::toDTO);
     }
 
     @Transactional(readOnly = true)
-    public List<PromotionProductDTO> getPromosWithProductGift() {
-        return promotionProductRepository.findByProductoGratisIsNotNull().stream().map(this::toDTO).collect(Collectors.toList());
+    public Page<PromotionProductDTO> getPromosWithVariantGift(Pageable pageable) {
+        return promotionProductRepository.findByVarianteGratisIsNotNull(pageable).map(this::toDTO);
     }
 
     @Transactional(readOnly = true)
-    public List<PromotionProductDTO> getPromosWithVariantGift() {
-        return promotionProductRepository.findByVarianteGratisIsNotNull().stream().map(this::toDTO).collect(Collectors.toList());
+    public Page<PromotionProductDTO> getActivePromos(Pageable pageable) {
+        return promotionProductRepository.findByPromocionActivoTrue(pageable).map(this::toDTO);
     }
 
     @Transactional(readOnly = true)
-    public List<PromotionProductDTO> getActivePromos() {
-        return promotionProductRepository.findByPromocionActivoTrue().stream().map(this::toDTO).collect(Collectors.toList());
+    public Page<PromotionProductDTO> getInactivePromos(Pageable pageable) {
+        return promotionProductRepository.findByPromocionActivoFalse(pageable).map(this::toDTO);
     }
 
     @Transactional(readOnly = true)
-    public List<PromotionProductDTO> getInactivePromos() {
-        return promotionProductRepository.findByPromocionActivoFalse().stream().map(this::toDTO).collect(Collectors.toList());
+    public Page<PromotionProductDTO> getByProductNameContaining(String nombreProducto, Pageable pageable) {
+        Page<PromotionProduct> entitiesPage =
+                promotionProductRepository.findByProductoNombreContaining(nombreProducto, pageable);
+        return entitiesPage.map(this::toDTO);
     }
 }
