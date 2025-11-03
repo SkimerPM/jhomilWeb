@@ -2,44 +2,61 @@ package com.jhomilmotors.jhomilwebapp.repository;
 
 import com.jhomilmotors.jhomilwebapp.entity.Product;
 import com.jhomilmotors.jhomilwebapp.entity.ProductVariant;
+import com.jhomilmotors.jhomilwebapp.entity.Promotion;
 import com.jhomilmotors.jhomilwebapp.entity.PromotionProduct;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
 
 @Repository
 public interface PromotionProductRepository extends JpaRepository<PromotionProduct, Long> {
 
     // -----------------------------
-    // Por producto
+    // Por Promoción (Principal)
     // -----------------------------
-    List<PromotionProduct> findByProducto(Product producto);
-    List<PromotionProduct> findByProductoAndPromocionActivoTrue(Product producto); // solo activas
-    List<PromotionProduct> findByProductoAndPromocionActivoFalse(Product producto); // solo inactivas
+    /**
+     * Devuelve una página de configuraciones de producto asociadas a la entidad Promotion.
+     * Esto es utilizado por el método getProductsByPromotionId en el servicio.
+     */
+    Page<PromotionProduct> findByPromocion(Promotion promocion, Pageable pageable);
+
 
     // -----------------------------
-    // Por variante
+    // Por producto (PAGINADO)
     // -----------------------------
-    List<PromotionProduct> findByVariante(ProductVariant variante);
-    List<PromotionProduct> findByVarianteAndPromocionActivoTrue(ProductVariant variante);
-    List<PromotionProduct> findByVarianteAndPromocionActivoFalse(ProductVariant variante);
+    Page<PromotionProduct> findByProducto(Product producto, Pageable pageable);
+    Page<PromotionProduct> findByProductoAndPromocionActivoTrue(Product producto, Pageable pageable); // solo activas
+    Page<PromotionProduct> findByProductoAndPromocionActivoFalse(Product producto, Pageable pageable); // solo inactivas
 
     // -----------------------------
-    // Promociones que dan regalos (producto o variante)
+    // Por variante (PAGINADO)
     // -----------------------------
-    List<PromotionProduct> findByProductoGratisIsNotNull();
-    List<PromotionProduct> findByVarianteGratisIsNotNull();
+    Page<PromotionProduct> findByVariante(ProductVariant variante, Pageable pageable);
+    Page<PromotionProduct> findByVarianteAndPromocionActivoTrue(ProductVariant variante, Pageable pageable);
+    Page<PromotionProduct> findByVarianteAndPromocionActivoFalse(ProductVariant variante, Pageable pageable);
 
     // -----------------------------
-    // Buscar por cantidad requerida para aplicar la promoción
+    // Promociones que dan regalos (PAGINADO)
     // -----------------------------
-    List<PromotionProduct> findByCantidadRequeridaGreaterThan(int cantidad);
+    Page<PromotionProduct> findByProductoGratisIsNotNull(Pageable pageable);
+    Page<PromotionProduct> findByVarianteGratisIsNotNull(Pageable pageable);
 
     // -----------------------------
-    // Buscar promociones activas e inactivas
+    // Buscar por cantidad requerida (PAGINADO)
     // -----------------------------
-    List<PromotionProduct> findByPromocionActivoTrue();
-    List<PromotionProduct> findByPromocionActivoFalse();
+    Page<PromotionProduct> findByCantidadRequeridaGreaterThan(int cantidad, Pageable pageable);
+
+    // -----------------------------
+    // Buscar promociones activas e inactivas (PAGINADO)
+    // -----------------------------
+    Page<PromotionProduct> findByPromocionActivoTrue(Pageable pageable);
+    Page<PromotionProduct> findByPromocionActivoFalse(Pageable pageable);
+
+    // Nueva firma para buscar en la relación Producto por coincidencia de nombre (LIKE %nombre%)
+    Page<PromotionProduct> findByProductoNombreContaining(String nombreProducto, Pageable pageable);
+
+    // NOTA: El método Page<PromotionProduct> findAll(Pageable pageable)
+    // está heredado automáticamente de JpaRepository.
 
 }
