@@ -53,6 +53,8 @@ public class UserService {
         user.setRol(role);
         user.setEmail(dto.getEmail());
         user.setPasswordHash(passwordHash);
+        user.setNombre(dto.getNombre());
+        user.setApellido(dto.getApellido());
         user.setMetodoRegistro(RegistrationMethod.LOCAL);
         user.setActivo(true);
         user.setFechaRegistro(LocalDateTime.now());
