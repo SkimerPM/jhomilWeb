@@ -20,4 +20,9 @@ public class UserRegistrationDTO {
     @NotBlank
     private String password;
 
+    @NotBlank
+    private String nombre;
+
+    @NotBlank
+    private String apellido;
 }

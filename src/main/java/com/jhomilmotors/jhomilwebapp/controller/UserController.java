@@ -50,19 +50,6 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(creado);
     }
 
-//    @GetMapping metodo en AdminUserController
-//    public List<UserProfileDTO> listarUsuarios() {
-//        return userService.listAll()
-//                .stream()
-//                .map(u -> new UserProfileDTO(
-//                        u.getNombre(),
-//                        u.getEmail(),
-//                        u.getRol().getNombre().name()
-//                ))
-//                .toList();
-//    }
-
-
     //usuarios por id:
     @GetMapping("/{id}")
     public ResponseEntity<UserProfileDTO> getUserById(@PathVariable Long id) {
