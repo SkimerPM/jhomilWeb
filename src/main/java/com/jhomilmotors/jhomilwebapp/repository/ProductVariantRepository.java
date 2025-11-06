@@ -20,4 +20,7 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
     @Query("SELECT v FROM ProductVariant v WHERE " +
             "LOWER(v.sku) LIKE LOWER(CONCAT('%', :q, '%'))")
     List<ProductVariant> buscarTextoVariantes(@Param("q") String q);
+    // Nuevo método para encontrar variantes por producto (usado en el Service)
+    List<ProductVariant> findByProductIdAndActivoTrue(Long productId);
+    boolean existsBySku(String sku);
 }

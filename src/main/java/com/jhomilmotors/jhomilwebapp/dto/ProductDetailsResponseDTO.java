@@ -20,7 +20,7 @@ public class ProductDetailsResponseDTO {
     private List<AtributoResponse> atributos;
 
     // Variantes disponibles (combinaciones de color, talla, etc.)
-    private List<VarianteResponse> variantes;
+    private List<ProductVariantAdminDTO> variantes;
 
     // Imágenes
     private List<ImagenResponse> imagenes;
@@ -39,16 +39,16 @@ public class ProductDetailsResponseDTO {
         private BigDecimal valorNumerico;
     }
 
-    @Data
-    @Builder
-    public static class VarianteResponse {
-        private Long id;
-        private String sku;
-        private BigDecimal precio;
-        private Integer stock;
-        private Boolean activo;
-        private List<AtributoResponse> atributos; // Color: Rojo, Talla: M, etc.
-    }
+//    @Data
+//    @Builder
+//    public static class VarianteResponse {
+//        private Long id;
+//        private String sku;
+//        private BigDecimal precio;
+//        private Integer stock;
+//        private Boolean activo;
+//        private List<AtributoResponse> atributos; // Color: Rojo, Talla: M, etc.
+//    }
 
     @Data
     @Builder

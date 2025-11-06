@@ -15,10 +15,9 @@ public class Image {
     @JoinColumn(name = "producto_id") // Relación con el producto base
     private Product product;
 
-    // NOTE: Podrías usar esta FK si las variantes tienen imágenes separadas
-    // @ManyToOne(fetch = FetchType.LAZY)
-    // @JoinColumn(name = "variante_id")
-    // private ProductVariant variant;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variante_id", nullable = true) // Puede ser null si es imagen de producto
+    private ProductVariant variant;
 
     private String url;
     private Boolean esPrincipal; // Mapea a es_principal

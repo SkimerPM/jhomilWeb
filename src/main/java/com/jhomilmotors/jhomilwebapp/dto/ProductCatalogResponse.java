@@ -1,25 +1,62 @@
 package com.jhomilmotors.jhomilwebapp.dto;
 
-import lombok.AllArgsConstructor; // ⬅️ ¡Nueva importación clave!
-import lombok.Builder;
 import lombok.Data;
 import java.math.BigDecimal;
+import java.util.List;
 
-@Data
-@Builder
-@AllArgsConstructor // ⬅️ ¡Necesario para la consulta HQL!
+@Data // Solo necesitamos Getters y Setters
+// 🛑 ¡ELIMINAR @Builder!
 public class ProductCatalogResponse {
-    private Long id; // 1. p.id
-    private String nombre; // 2. p.nombre
-    private String descripcion; // 3. p.descripcion
 
-    // El nombre del campo debe coincidir con los tipos y orden de la consulta HQL
-    private BigDecimal precioBase; // 4. p.precioBase (Asumiendo que 'p.precioBase' es BigDecimal en la entidad)
-    private Long stockTotal; // 5. COALESCE(SUM(pv.stock), 0) (Debe ser Long si pv.stock es Long/Integer)
-    private String imagenUrl; // 6. i.url
+    private Long id;
+    private String nombre;
+    private String descripcion;
+    private BigDecimal precioBase;
+    private Long stockTotal;
+    private String imagenUrl;
+    private Long categoriaId;
+    private String categoriaNombre;
+    private Long marcaId;
+    private String marcaNombre;
+    private String sku; // Campo 11
 
-    private Long categoriaId; // 7. p.category.id
-    private String categoriaNombre; // 8. p.category.nombre
-    private Long marcaId; // 9. m.id
-    private String marcaNombre; // 10. m.nombre
+    private List<ImageResponseDTO> imagenes; // Campo 12
+
+    /**
+     * CONSTRUCTOR MANUAL DE 11 ARGUMENTOS (Para HQL/JPQL).
+     */
+    public ProductCatalogResponse(
+            Long id,
+            String nombre,
+            String descripcion,
+            BigDecimal precioBase,
+            Long stockTotal,
+            String imagenUrl,
+            Long categoriaId,
+            String categoriaNombre,
+            Long marcaId,
+            String marcaNombre,
+            String sku
+    ) {
+        // ... (Asignación de los 11 campos)
+        this.id = id;
+        this.nombre = nombre;
+        this.descripcion = descripcion;
+        this.precioBase = precioBase;
+        this.stockTotal = stockTotal;
+        this.imagenUrl = imagenUrl;
+        this.categoriaId = categoriaId;
+        this.categoriaNombre = categoriaNombre;
+        this.marcaId = marcaId;
+        this.marcaNombre = marcaNombre;
+        this.sku = sku;
+
+        this.imagenes = null;
+    }
+
+    /**
+     * CONSTRUCTOR VACÍO (Recomendado para Spring/Jackson).
+     */
+    public ProductCatalogResponse() {
+    }
 }

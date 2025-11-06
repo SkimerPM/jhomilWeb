@@ -62,11 +62,26 @@ public class SecurityConfig {
                                 // Purchases y suppliers SOLO ADMIN
                                 .requestMatchers("/api/purchases/**").hasAuthority("ROLE_ADMIN")
                                 .requestMatchers("/api/suppliers/**").hasAuthority("ROLE_ADMIN")
-                        //para productos metod get
-                        .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/api/v1/productos/**").permitAll()
 
+
+                                // ⬇️⬇️⬇️ AGREGAR ESTAS LÍNEAS PARA PRODUCTOS ⬇️⬇️⬇️
+                                // Productos: GET público, POST/PUT/DELETE solo ADMIN
+                                .requestMatchers(HttpMethod.GET, "/api/v1/catalog/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/productos/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/v1/buscar**").permitAll()
+
+                                // ADMIN: Crear, editar, eliminar productos
+//                                .requestMatchers(HttpMethod.POST, "/api/v1/admin/productos/**").hasAuthority("ROLE_ADMIN")
+//                                .requestMatchers(HttpMethod.PUT, "/api/v1/admin/productos/**").hasAuthority("ROLE_ADMIN")
+//                                .requestMatchers(HttpMethod.DELETE, "/api/v1/admin/productos/**").hasAuthority("ROLE_ADMIN")
+//                                .requestMatchers(HttpMethod.PATCH, "/api/v1/admin/productos/**").hasAuthority("ROLE_ADMIN")
+
+
+                                // TEMPORAL PARA PRUEBAS
+                                .requestMatchers("/api/v1/admin/productos/**").permitAll()
+                                .requestMatchers("/api/v1/admin/variantes/**").permitAll()
+
+                        //para productos metod get
                                 .requestMatchers("/login/oauth2/**").permitAll()
 
 

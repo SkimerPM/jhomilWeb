@@ -19,4 +19,8 @@ public interface ImageRepository extends JpaRepository<Image, Long> {
      * Busca todas las imágenes de un producto, ordenadas por campo "orden".
      */
     List<Image> findByProductIdOrderByOrden(Long productId);
+
+    List<Image> findByVariantIdOrderByOrden(Long variantId);
+    // En ImageRepository.java
+    List<Image> findByProductIdAndVariantIsNullOrderByOrden(Long productId);
 }
