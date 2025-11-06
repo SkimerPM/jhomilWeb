@@ -13,7 +13,7 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class UserRegistrationDTO {
 
-    @Email
+    @Email(message = "email debe tener el formato correcto.")
     @NotBlank
     private String email;
 

@@ -10,14 +10,20 @@ public class AuthResponseDTO {
     private String accessToken;
     private String email;
     private String role;
+    private String refreshToken; //para móvil
 
     public AuthResponseDTO(String accessToken, String email, String role) {
         this.accessToken = accessToken;
-//        this.refreshToken = refreshToken; (ya no ya, se hace por httpOnly, más seguro uwu)
         this.email = email;
         this.role = role;
     }
 
-    public AuthResponseDTO() {
+    public AuthResponseDTO(String accessToken, String email, String role, String refreshToken) {
+        this.accessToken = accessToken;
+        this.email = email;
+        this.role = role;
+        this.refreshToken = refreshToken;
     }
+
+    public AuthResponseDTO() {}
 }
