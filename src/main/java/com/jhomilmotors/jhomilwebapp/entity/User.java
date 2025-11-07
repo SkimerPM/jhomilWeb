@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "core_usuario")
 
-public class    User {
+public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -29,6 +29,9 @@ public class    User {
     @NotBlank
     @Column(name = "email", unique = true, nullable = false)
     private String email;
+
+    @Column(name ="direccion" , length = 50)
+    private String direccion;
 
     @Column(name = "password_hash", length = 255)
     private String passwordHash;
@@ -60,11 +63,12 @@ public class    User {
 
     public User(){}
 
-    public User(Role rol, String nombre, String apellido, String email, String passwordHash, String telefono, String documento, RegistrationMethod metodoRegistro, String googleId, String fotoPerfil, boolean activo, LocalDateTime fechaRegistro, LocalDateTime ultimoAcceso) {
+    public User(Role rol, String nombre, String apellido, String email, String direccion, String passwordHash, String telefono, String documento, RegistrationMethod metodoRegistro, String googleId, String fotoPerfil, boolean activo, LocalDateTime fechaRegistro, LocalDateTime ultimoAcceso) {
         this.rol = rol;
         this.nombre = nombre;
         this.apellido = apellido;
         this.email = email;
+        this.direccion = direccion;
         this.passwordHash = passwordHash;
         this.telefono = telefono;
         this.documento = documento;
@@ -74,6 +78,14 @@ public class    User {
         this.activo = activo;
         this.fechaRegistro = fechaRegistro;
         this.ultimoAcceso = ultimoAcceso;
+    }
+
+    public String getDireccion() {
+        return direccion;
+    }
+
+    public void setDireccion(String direccion) {
+        this.direccion = direccion;
     }
 
     public Long getId() {

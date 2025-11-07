@@ -10,6 +10,7 @@ import com.jhomilmotors.jhomilwebapp.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -73,7 +74,6 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException("Usuario con googleId '" + googleId + "' no encontrado"));
     }
 
-
     public void updateLastAccess(Long userId) {
         userRepository.findById(userId).ifPresent(user -> {
             user.setUltimoAcceso(LocalDateTime.now());
@@ -84,7 +84,6 @@ public class UserService {
     public void deleteUser(Long userId) {
         userRepository.deleteById(userId);
     }
-
 
     public User validateLogin(String email, String password) {
         Optional<User> userOpt = userRepository.findByEmail(email);
@@ -187,12 +186,27 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
     }
 
-    public User actualizar(Long id, UserProfileDTO datos) {
-        User user = userRepository.findById(id).orElseThrow();
-        user.setNombre(datos.nombre());
-        user.setEmail(datos.email());
-        // se pueden considerar más..
-        return userRepository.save(user);
+//    public User actualizar(Long id, UserProfileDTO datos) {
+//        User user = userRepository.findById(id).orElseThrow();
+//        user.setNombre(datos.nombre());
+//        user.setEmail(datos.email());
+//        // se pueden considerar más..
+//        return userRepository.save(user);
+//    }
+    public CustomerProfileDTO actualizar(Long id, UpdateProfileCustomerDTO request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+        user.setNombre(request.getName());
+        user.setApellido(request.getLastname());
+        user.setEmail(request.getEmail());
+        if (request.getPhoneNumber() != null && !request.getPhoneNumber().trim().isEmpty()) {
+            user.setTelefono(request.getPhoneNumber());
+        }
+        if (request.getAddress() != null && !request.getAddress().trim().isEmpty()) {
+            user.setDireccion(request.getAddress());
+        }
+        User updatedUser = userRepository.save(user);
+        return mapUserToCustomerProfileDTO(updatedUser);
     }
 
     public User actualizarEstado(Long id, boolean activo) {
@@ -219,5 +233,33 @@ public class UserService {
         userRepository.save(user);
     }
 
+    private CustomerProfileDTO mapUserToCustomerProfileDTO(User user) {
+        return new CustomerProfileDTO(
+                user.getId(),
+                user.getNombre(),
+                user.getApellido(),
+                user.getEmail(),
+                user.getTelefono(),
+                user.getDireccion()
+        );
+    }
 
+    public User getUserFromAuthentication(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new SecurityException("Usuario no autenticado");
+        }
+        String identifier = authentication.getName();
+        User user;
+        if (identifier != null && identifier.contains("@")) {
+            user = findByEmail(identifier);
+        } else {
+            user = findByGoogleId(identifier);
+        }
+        return user; // Devuelve el objeto User completo
+    }
+
+    public Long getUserIdFromAuthentication(Authentication authentication) {
+        User user = getUserFromAuthentication(authentication);
+        return user.getId();
+    }
 }
