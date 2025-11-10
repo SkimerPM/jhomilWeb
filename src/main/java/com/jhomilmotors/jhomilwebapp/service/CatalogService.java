@@ -1,10 +1,16 @@
 package com.jhomilmotors.jhomilwebapp.service;
 
+import com.jhomilmotors.jhomilwebapp.dto.brand.BrandRequestDTO;
+import com.jhomilmotors.jhomilwebapp.dto.brand.BrandResponseDTO;
 import com.jhomilmotors.jhomilwebapp.entity.*;
+import com.jhomilmotors.jhomilwebapp.exception.ResourceNotFoundException;
 import com.jhomilmotors.jhomilwebapp.repository.*;
 import com.jhomilmotors.jhomilwebapp.dto.*;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.List;
@@ -128,13 +134,68 @@ public class CatalogService {
                 .collect(Collectors.toList());
     }
 
+    // BRANDs
+
     public List<BrandResponseDTO> findAllBrands() {
         return brandRepository.findAll().stream()
                 .map(m -> new BrandResponseDTO(m.getId(), m.getNombre()))
                 .collect(Collectors.toList());
     }
 
+    public Page<BrandResponseDTO> findBrands(String nombre, Pageable pageable){
+        Page<Brand> marcas = brandRepository.findByNombreContainingIgnoreCase(nombre, pageable);
+        return marcas.map(m -> new BrandResponseDTO(m.getId(), m.getNombre()));
+    }
+
+    public BrandResponseDTO createBrand(BrandRequestDTO dto){
+        if(dto.getNombre() == null || dto.getNombre().trim().isEmpty()){
+            throw new IllegalArgumentException("El nombre de la marca es obligatorio");
+        }
+        if (brandRepository.findByNombreIgnoreCase(dto.getNombre()).isPresent()){
+            throw new IllegalArgumentException("El nombre de la marca ya existe");
+        }
+        Brand brand = new Brand();
+        brand.setNombre(dto.getNombre().trim());
+        Brand saved = brandRepository.save(brand);
+        return new BrandResponseDTO(saved.getId(), saved.getNombre());
+    }
+
+    public BrandResponseDTO updateBrand(Long id, BrandRequestDTO dto) {
+
+        if(dto.getNombre() == null || dto.getNombre().trim().isEmpty()){
+            throw new IllegalArgumentException("El nombre de la marca es obligatorio");
+        }
+
+        Brand brand = brandRepository.findById(id).orElseThrow( () ->
+             new  EntityNotFoundException("La marca no existe")
+        );
+
+        if (brandRepository.findByNombreIgnoreCase(dto.getNombre()).isPresent()
+                && !brand.getNombre().equalsIgnoreCase(dto.getNombre())) {
+            throw new IllegalArgumentException("El nombre de la marca ya existe");
+        }
+
+        brand.setNombre(dto.getNombre().trim());
+        Brand saved = brandRepository.save(brand);
+        return new BrandResponseDTO(saved.getId(), saved.getNombre());
+
+    }
+
+    // CUIDADO: Borrado NO lógico.
+    public void deleteBrand(Long id){
+        Brand brand = brandRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Marca no encontrada"));
+        brandRepository.delete(brand);
+    }
+
+//    public Page<BrandResponseDTO> findAllBrand( Pageable pageable ){
+//        Page<Brand> marcas = brandRepository.findAll(pageable);
+//        return marcas.map(brand -> new BrandResponseDTO(brand.getId(), brand.getNombre()));
+//    }
+
     public Optional<Product> findById(Long id) {
         return productRepository.findById(id);
     }
+
+
 }

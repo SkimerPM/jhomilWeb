@@ -68,6 +68,8 @@ public class SecurityConfig {
 
                                 .requestMatchers(HttpMethod.GET, "/api/v1/buscar**").permitAll()
                                 .requestMatchers("/login/oauth2/**").permitAll()
+                                //rutas admin
+                                .requestMatchers("/api/v1/catalog/admin/**").hasAuthority("ROLE_ADMIN")
 
 
                                 .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
@@ -75,9 +77,10 @@ public class SecurityConfig {
                         .requestMatchers("/admin/dashboard/**").hasAuthority("ROLE_ADMIN")
 
                         //rutas admin pero de gestion de usuarios:
-                                .requestMatchers(HttpMethod.PUT, "/api/users/**").hasAuthority("ROLE_ADMIN")
+
 
                                 .requestMatchers(HttpMethod.PATCH, "/api/users/**").hasAuthority("ROLE_ADMIN")
+                                .requestMatchers(HttpMethod.PUT, "/api/users/**").authenticated()
                                 .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasAuthority("ROLE_ADMIN")
 //                                .requestMatchers(HttpMethod.GET, "/api/users/**").hasAuthority("ROLE_ADMIN")
                                 .requestMatchers(HttpMethod.GET, "/api/users/{id}").permitAll()

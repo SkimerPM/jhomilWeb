@@ -1,4 +1,4 @@
-package com.jhomilmotors.jhomilwebapp.dto;
+package com.jhomilmotors.jhomilwebapp.dto.brand;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class BrandResponseDTO {
-    private Long id;
+public class BrandRequestDTO {
     private String nombre;
 }
