@@ -4,6 +4,7 @@ import com.jhomilmotors.jhomilwebapp.enums.RegistrationMethod;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "core_usuario")
@@ -12,6 +13,13 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @OneToMany(
+            mappedBy = "user",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<RefreshToken> refreshTokens;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "rol_id")
