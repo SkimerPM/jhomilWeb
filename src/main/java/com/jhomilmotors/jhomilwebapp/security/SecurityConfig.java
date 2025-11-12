@@ -43,6 +43,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/users").permitAll() //añadido
 
 
                         // Permitir GET a usuarios por email (opcional si quieres que sea público)
@@ -82,8 +83,9 @@ public class SecurityConfig {
                                 .requestMatchers(HttpMethod.PATCH, "/api/users/**").hasAuthority("ROLE_ADMIN")
                                 .requestMatchers(HttpMethod.PUT, "/api/users/**").authenticated()
                                 .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasAuthority("ROLE_ADMIN")
-//                                .requestMatchers(HttpMethod.GET, "/api/users/**").hasAuthority("ROLE_ADMIN")
-                                .requestMatchers(HttpMethod.GET, "/api/users/{id}").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated() //mod
+                                .requestMatchers(HttpMethod.GET, "/api/users").hasAuthority("ROLE_ADMIN") //mod
+                                .requestMatchers(HttpMethod.GET, "/api/users/{id}").hasAuthority("ROLE_ADMIN") //mod
 
 
 
