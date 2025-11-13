@@ -1,26 +1,30 @@
 package com.jhomilmotors.jhomilwebapp.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "core_imagen") // Nombre de tabla en la DB
+@Table(name = "core_imagen")
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Image {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "producto_id") // Relación con el producto base
+    @JoinColumn(name = "producto_id")
     private Product product;
-
-    // NOTE: Podrías usar esta FK si las variantes tienen imágenes separadas
-    // @ManyToOne(fetch = FetchType.LAZY)
-    // @JoinColumn(name = "variante_id")
-    // private ProductVariant variant;
-
+    //Nueva relación a variante(puede ser nula)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variante_id")
+    private ProductVariant variante;
+    @Column(name = "url", length = 1024, nullable = false)
     private String url;
-    private Boolean esPrincipal; // Mapea a es_principal
-    private Integer orden;
+    @Column(name = "es_principal")
+    private Boolean esPrincipal = false;
+    @Column(name = "orden")
+    private Integer orden = 0;
 }

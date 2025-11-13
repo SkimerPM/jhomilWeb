@@ -3,11 +3,14 @@ package com.jhomilmotors.jhomilwebapp.repository;
 import com.jhomilmotors.jhomilwebapp.entity.Product;
 import com.jhomilmotors.jhomilwebapp.dto.ProductCatalogResponse;
 import com.jhomilmotors.jhomilwebapp.entity.ProductVariant;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
@@ -27,4 +30,17 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             "LOWER(v.sku) LIKE LOWER(CONCAT('%', :q, '%'))")
     List<ProductVariant> buscarEnVariantes(@Param("q") String q);
 
+    Optional<Product> findBySkuBase(String skuBase);
+    List<Product> findByCategoryId(Long categoriaId);
+    List<Product> findByBrand_Id(Long marcaId); // <-- CORRECTO
+    List<Product> findByActivoTrue();
+    List<Product> findByActivoFalse();
+
+    Page<Product> findByNombreContainingIgnoreCase(String nombre, Pageable pageable);
+    Page<Product> findByCategoryIdAndActivoTrue(Long categoryId, Pageable pageable);
+    Page<Product> findByBrand_IdAndActivoTrue(Long marcaId, Pageable pageable); // <-- CORRECTO
+    Page<Product> findByActivoTrue(Pageable pageable);
+
+    @Query("SELECT p FROM Product p WHERE p.nombre ILIKE %:nombre% OR p.descripcion ILIKE %:nombre%")
+    Page<Product> searchByNombreOrDescripcion(@Param("nombre") String nombre, Pageable pageable);
 }

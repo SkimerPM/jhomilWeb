@@ -20,13 +20,20 @@ import java.util.stream.Collectors;
 @Service
 public class CatalogService {
 
-    @Autowired private ProductRepository productRepository;
-    @Autowired private ProductVariantRepository productVariantRepository;
-    @Autowired private ProductAttributeRepository productAttributeRepository;
-    @Autowired private VariantAttributeRepository variantAttributeRepository;
-    @Autowired private CategoryRepository categoryRepository;
-    @Autowired private BrandRepository brandRepository;
-    @Autowired private ImageRepository imageRepository;
+    @Autowired
+    private ProductRepository productRepository;
+    @Autowired
+    private ProductVariantRepository productVariantRepository;
+    @Autowired
+    private ProductAttributeRepository productAttributeRepository;
+    @Autowired
+    private VariantAttributeRepository variantAttributeRepository;
+    @Autowired
+    private CategoryRepository categoryRepository;
+    @Autowired
+    private BrandRepository brandRepository;
+    @Autowired
+    private ImageRepository imageRepository;
 
     public List<ProductCatalogResponse> findAllCatalogProducts() {
         return productRepository.findAllEntities().stream()
@@ -68,7 +75,7 @@ public class CatalogService {
                         .map(pa -> ProductDetailsResponseDTO.AtributoResponse.builder()
                                 .nombre(pa.getAttribute().getNombre())
                                 .codigo(pa.getAttribute().getCodigo())
-                                .tipo(pa.getAttribute().getTipo())
+                                .tipo(String.valueOf(pa.getAttribute().getTipo()))
                                 .unidad(pa.getAttribute().getUnidad())
                                 .valorTexto(pa.getValorText())
                                 .valorNumerico(pa.getValorNum())
@@ -86,7 +93,7 @@ public class CatalogService {
                                             .map(va -> ProductDetailsResponseDTO.AtributoResponse.builder()
                                                     .nombre(va.getAttribute().getNombre())
                                                     .codigo(va.getAttribute().getCodigo())
-                                                    .tipo(va.getAttribute().getTipo())
+                                                    .tipo(String.valueOf(va.getAttribute().getTipo()))
                                                     .unidad(va.getAttribute().getUnidad())
                                                     .valorTexto(va.getValorText())
                                                     .valorNumerico(va.getValorNum())
@@ -142,16 +149,16 @@ public class CatalogService {
                 .collect(Collectors.toList());
     }
 
-    public Page<BrandResponseDTO> findBrands(String nombre, Pageable pageable){
+    public Page<BrandResponseDTO> findBrands(String nombre, Pageable pageable) {
         Page<Brand> marcas = brandRepository.findByNombreContainingIgnoreCase(nombre, pageable);
         return marcas.map(m -> new BrandResponseDTO(m.getId(), m.getNombre()));
     }
 
-    public BrandResponseDTO createBrand(BrandRequestDTO dto){
-        if(dto.getNombre() == null || dto.getNombre().trim().isEmpty()){
+    public BrandResponseDTO createBrand(BrandRequestDTO dto) {
+        if (dto.getNombre() == null || dto.getNombre().trim().isEmpty()) {
             throw new IllegalArgumentException("El nombre de la marca es obligatorio");
         }
-        if (brandRepository.findByNombreIgnoreCase(dto.getNombre()).isPresent()){
+        if (brandRepository.findByNombreIgnoreCase(dto.getNombre()).isPresent()) {
             throw new IllegalArgumentException("El nombre de la marca ya existe");
         }
         Brand brand = new Brand();
@@ -162,12 +169,12 @@ public class CatalogService {
 
     public BrandResponseDTO updateBrand(Long id, BrandRequestDTO dto) {
 
-        if(dto.getNombre() == null || dto.getNombre().trim().isEmpty()){
+        if (dto.getNombre() == null || dto.getNombre().trim().isEmpty()) {
             throw new IllegalArgumentException("El nombre de la marca es obligatorio");
         }
 
-        Brand brand = brandRepository.findById(id).orElseThrow( () ->
-             new  EntityNotFoundException("La marca no existe")
+        Brand brand = brandRepository.findById(id).orElseThrow(() ->
+                new EntityNotFoundException("La marca no existe")
         );
 
         if (brandRepository.findByNombreIgnoreCase(dto.getNombre()).isPresent()
@@ -182,7 +189,7 @@ public class CatalogService {
     }
 
     // CUIDADO: Borrado NO lógico.
-    public void deleteBrand(Long id){
+    public void deleteBrand(Long id) {
         Brand brand = brandRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Marca no encontrada"));
         brandRepository.delete(brand);
@@ -197,5 +204,77 @@ public class CatalogService {
         return productRepository.findById(id);
     }
 
+    public List<ProductDetailsResponseDTO.ImagenResponse> getImagesForProductAndVariants(Long productId) {
+        // Imágenes del producto
+        List<ProductDetailsResponseDTO.ImagenResponse> productImages = imageRepository.findByProductIdOrderByOrdenAsc(productId)
+                .stream()
+                .map(img -> ProductDetailsResponseDTO.ImagenResponse.builder()
+                        .url(img.getUrl())
+                        .esPrincipal(img.getEsPrincipal())
+                        .orden(img.getOrden())
+                        .build())
+                .collect(Collectors.toList());
+
+        // Variantes del producto
+        List<ProductVariant> variants = productVariantRepository.findByProductId(productId);
+        List<ProductDetailsResponseDTO.ImagenResponse> variantImages = new java.util.ArrayList<>();
+        for (ProductVariant v : variants) {
+            List<ProductDetailsResponseDTO.ImagenResponse> imgs = imageRepository.findByVarianteIdOrderByOrdenAsc(v.getId())
+                    .stream()
+                    .map(img -> ProductDetailsResponseDTO.ImagenResponse.builder()
+                            .url(img.getUrl())
+                            .esPrincipal(img.getEsPrincipal())
+                            .orden(img.getOrden())
+                            .build())
+                    .collect(Collectors.toList());
+            variantImages.addAll(imgs);
+        }
+        // Une ambas listas
+        List<ProductDetailsResponseDTO.ImagenResponse> allImages = new java.util.ArrayList<>();
+        allImages.addAll(productImages);
+        allImages.addAll(variantImages);
+        return allImages;
+    }
+
+    // En CatalogService
+    public List<Product> findByCategoryId(Long categoriaId) {
+        return productRepository.findByCategoryId(categoriaId);
+    }
+
+    public List<Product> findByBrandId(Long brandId) {
+        return productRepository.findByBrand_Id(brandId);
+    }
+
+    public List<Product> findByActivoTrue() {
+        return productRepository.findByActivoTrue();
+    }
+
+    public List<Product> findByActivoFalse() {
+        return productRepository.findByActivoFalse();
+    }
+
+    public Page<Product> findByNombre(String nombre, Pageable pageable) {
+        return productRepository.findByNombreContainingIgnoreCase(nombre, pageable);
+    }
+
+    public Page<Product> findActivoTruePaged(Pageable pageable) {
+        return productRepository.findByActivoTrue(pageable);
+    }
+
+    public Page<Product> findByCategoryAndActivoTrue(Long categoryId, Pageable pageable) {
+        return productRepository.findByCategoryIdAndActivoTrue(categoryId, pageable);
+    }
+
+    public Page<Product> findByBrandAndActivoTrue(Long brandId, Pageable pageable) {
+        return productRepository.findByBrand_IdAndActivoTrue(brandId, pageable);
+    }
+
+    public Page<Product> fuzzySearchNombreDescripcion(String nombre, Pageable pageable) {
+        return productRepository.searchByNombreOrDescripcion(nombre, pageable);
+    }
+
+    public List<ProductVariant> buscarEnVariantes(String q) {
+        return productVariantRepository.buscarEnVariantes(q);
+    }
 
 }

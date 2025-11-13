@@ -6,6 +6,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "core_lote")
@@ -64,4 +65,7 @@ public class Batch {
 
     @Column(name = "id_almacen")
     private Integer idAlmacen;
+
+    @OneToMany(mappedBy = "lote", cascade = CascadeType.ALL, orphanRemoval = false)
+    private List<InventoryMovement> movimientos;
 }

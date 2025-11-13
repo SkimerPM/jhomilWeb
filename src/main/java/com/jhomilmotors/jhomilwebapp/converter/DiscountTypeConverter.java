@@ -1,5 +1,6 @@
-package com.jhomilmotors.jhomilwebapp.enums;
+package com.jhomilmotors.jhomilwebapp.converter;
 
+import com.jhomilmotors.jhomilwebapp.enums.DiscountType;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 

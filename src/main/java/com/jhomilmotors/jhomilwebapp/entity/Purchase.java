@@ -1,5 +1,6 @@
 package com.jhomilmotors.jhomilwebapp.entity;
 
+import com.jhomilmotors.jhomilwebapp.enums.PurchaseStatus; // ✅ Importa del paquete enums
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -13,6 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+
 public class Purchase {
 
     @Id
@@ -23,40 +25,119 @@ public class Purchase {
     @JoinColumn(name = "proveedor_id", nullable = false)
     private Supplier proveedor;
 
-    @Column(length = 100, unique = true)
+    @Column(name = "codigo", length = 100, unique = true)
     private String codigo;
 
-    @Column(name = "fecha_compra", nullable = false)
-    private LocalDateTime fechaCompra;
+    @Column(name = "fecha_compra")
+    private LocalDateTime fechaCompra = LocalDateTime.now();
 
-    @Column(nullable = false, precision = 12, scale = 2)
+    @Column(name = "subtotal", precision = 12, scale = 2, nullable = false)
     private BigDecimal subtotal;
 
-    @Column(nullable = false, precision = 12, scale = 2)
-    private BigDecimal impuestos;
+    @Column(name = "impuestos", precision = 12, scale = 2)
+    private BigDecimal impuestos = BigDecimal.ZERO;
 
-    @Column(nullable = false, precision = 12, scale = 2)
+    @Column(name = "total", precision = 12, scale = 2, nullable = false)
     private BigDecimal total;
 
-    @Column(length = 20, nullable = false)
-    @Enumerated(EnumType.STRING)
-    private PurchaseStatus estado;
+    @Column(name = "estado", length = 20, nullable = false)
+    @Convert(converter = com.jhomilmotors.jhomilwebapp.converter.PurchaseStatusConverter.class)
+    private PurchaseStatus estado = PurchaseStatus.PENDIENTE;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "nota", columnDefinition = "TEXT")
     private String nota;
 
-    // Relación con items de compra
-    @OneToMany(mappedBy = "compra", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "compra", cascade = CascadeType.ALL, orphanRemoval = false, fetch = FetchType.LAZY)
     private List<PurchaseItem> items;
 
-    // Relación con lotes
-    @OneToMany(mappedBy = "compra", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "compra", cascade = CascadeType.ALL, orphanRemoval = false, fetch = FetchType.LAZY)
     private List<Batch> lotes;
 
-    // Enum para estados
-    public enum PurchaseStatus {
-        pendiente,
-        recibido,
-        cancelado
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Supplier getProveedor() {
+        return proveedor;
+    }
+
+    public void setProveedor(Supplier proveedor) {
+        this.proveedor = proveedor;
+    }
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public void setCodigo(String codigo) {
+        this.codigo = codigo;
+    }
+
+    public LocalDateTime getFechaCompra() {
+        return fechaCompra;
+    }
+
+    public void setFechaCompra(LocalDateTime fechaCompra) {
+        this.fechaCompra = fechaCompra;
+    }
+
+    public BigDecimal getSubtotal() {
+        return subtotal;
+    }
+
+    public void setSubtotal(BigDecimal subtotal) {
+        this.subtotal = subtotal;
+    }
+
+    public BigDecimal getImpuestos() {
+        return impuestos;
+    }
+
+    public void setImpuestos(BigDecimal impuestos) {
+        this.impuestos = impuestos;
+    }
+
+    public BigDecimal getTotal() {
+        return total;
+    }
+
+    public void setTotal(BigDecimal total) {
+        this.total = total;
+    }
+
+    public PurchaseStatus getEstado() {
+        return estado;
+    }
+
+    public void setEstado(PurchaseStatus estado) {
+        this.estado = estado;
+    }
+
+    public String getNota() {
+        return nota;
+    }
+
+    public void setNota(String nota) {
+        this.nota = nota;
+    }
+
+    public List<PurchaseItem> getItems() {
+        return items;
+    }
+
+    public void setItems(List<PurchaseItem> items) {
+        this.items = items;
+    }
+
+    public List<Batch> getLotes() {
+        return lotes;
+    }
+
+    public void setLotes(List<Batch> lotes) {
+        this.lotes = lotes;
     }
 }

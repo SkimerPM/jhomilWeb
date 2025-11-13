@@ -9,6 +9,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface PromotionProductRepository extends JpaRepository<PromotionProduct, Long> {
 
@@ -58,5 +60,11 @@ public interface PromotionProductRepository extends JpaRepository<PromotionProdu
 
     // NOTA: El método Page<PromotionProduct> findAll(Pageable pageable)
     // está heredado automáticamente de JpaRepository.
+
+    List<PromotionProduct> findByPromocionId(Long promocionId);
+    List<PromotionProduct> findByProductoId(Long productoId);
+    List<PromotionProduct> findByVarianteId(Long varianteId);
+    Page<PromotionProduct> findByPromocionId(Long promocionId, Pageable pageable);
+    Page<PromotionProduct> findByProductoId(Long productoId, Pageable pageable);
 
 }

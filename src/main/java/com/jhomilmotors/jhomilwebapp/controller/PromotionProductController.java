@@ -202,4 +202,17 @@ public class PromotionProductController {
         Page<PromotionProductDTO> resultPage = service.getByProductNameContaining(productName, pageable);
         return ResponseEntity.ok(resultPage);
     }
+
+    // Promociones por producto
+    @GetMapping("/product/{productId}")
+    public ResponseEntity<List<PromotionProductDTO>> getPromosByProduct(@PathVariable Long productId) {
+        return ResponseEntity.ok(service.getPromotionsByProductId(productId));
+    }
+
+    // Promociones por variante
+    @GetMapping("/variant/{variantId}")
+    public ResponseEntity<List<PromotionProductDTO>> getPromosByVariant(@PathVariable Long variantId) {
+        return ResponseEntity.ok(service.getPromotionsByVariantId(variantId));
+    }
+
 }

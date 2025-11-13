@@ -2,7 +2,7 @@ package com.jhomilmotors.jhomilwebapp.service;
 
 import com.jhomilmotors.jhomilwebapp.dto.*;
 import com.jhomilmotors.jhomilwebapp.entity.*;
-import com.jhomilmotors.jhomilwebapp.entity.Purchase.PurchaseStatus;
+import com.jhomilmotors.jhomilwebapp.enums.PurchaseStatus;
 import com.jhomilmotors.jhomilwebapp.exception.ResourceNotFoundException;
 import com.jhomilmotors.jhomilwebapp.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -88,7 +88,7 @@ public class PurchaseService {
                 .subtotal(createDTO.getSubtotal())
                 .impuestos(createDTO.getImpuestos())
                 .total(createDTO.getTotal())
-                .estado(PurchaseStatus.pendiente)
+                .estado(PurchaseStatus.PENDIENTE) // ✅ CORREGIDO: PENDIENTE en mayúsculas
                 .nota(createDTO.getNota())
                 .items(new ArrayList<>())
                 .build();

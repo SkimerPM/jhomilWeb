@@ -251,4 +251,19 @@ public class PromotionProductService {
                 promotionProductRepository.findByProductoNombreContaining(nombreProducto, pageable);
         return entitiesPage.map(this::toDTO);
     }
+
+    // Obtiene promociones por id de producto
+    @Transactional(readOnly = true)
+    public List<PromotionProductDTO> getPromotionsByProductId(Long productId) {
+        return promotionProductRepository.findByProductoId(productId)
+                .stream().map(this::toDTO).collect(Collectors.toList());
+    }
+
+    // Obtiene promociones por id de variante
+    @Transactional(readOnly = true)
+    public List<PromotionProductDTO> getPromotionsByVariantId(Long variantId) {
+        return promotionProductRepository.findByVarianteId(variantId)
+                .stream().map(this::toDTO).collect(Collectors.toList());
+    }
+
 }

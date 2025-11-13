@@ -4,6 +4,8 @@ import com.jhomilmotors.jhomilwebapp.dto.brand.BrandRequestDTO;
 import com.jhomilmotors.jhomilwebapp.dto.brand.BrandResponseDTO;
 import com.jhomilmotors.jhomilwebapp.dto.ProductCatalogResponse;
 import com.jhomilmotors.jhomilwebapp.dto.ProductDetailsResponseDTO;
+import com.jhomilmotors.jhomilwebapp.entity.Product;
+import com.jhomilmotors.jhomilwebapp.entity.ProductVariant;
 import com.jhomilmotors.jhomilwebapp.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -77,5 +79,93 @@ public class CatalogController {
     }
 
 
+
+    @GetMapping("/{id}/imagenes-completas")
+    public ResponseEntity<List<ProductDetailsResponseDTO.ImagenResponse>> getAllImagesForProductAndVariants(@PathVariable Long id) {
+        List<ProductDetailsResponseDTO.ImagenResponse> imagenes = catalogService.getImagesForProductAndVariants(id);
+        return ResponseEntity.ok(imagenes);
+    }
+
+
+
+    /**
+     * Obtiene todos los productos activos.
+     */
+    @GetMapping("/activos")
+    public ResponseEntity<List<Product>> getActivos() {
+        return ResponseEntity.ok(catalogService.findByActivoTrue());
+    }
+
+    /**
+     * Obtiene todos los productos inactivos (ocultos/deshabilitados).
+     */
+    @GetMapping("/inactivos")
+    public ResponseEntity<List<Product>> getInactivos() {
+        return ResponseEntity.ok(catalogService.findByActivoFalse());
+    }
+
+    /**
+     * Busca productos cuyo nombre contiene la cadena indicada (paginado).
+     */
+    @GetMapping("/buscar-nombre")
+    public ResponseEntity<Page<Product>> buscarPorNombre(@RequestParam String nombre, Pageable pageable) {
+        return ResponseEntity.ok(catalogService.findByNombre(nombre, pageable));
+    }
+
+    /**
+     * Obtiene productos activos con paginación, para catálogos grandes.
+     */
+    @GetMapping("/activos-paged")
+    public ResponseEntity<Page<Product>> activosPaged(Pageable pageable) {
+        return ResponseEntity.ok(catalogService.findActivoTruePaged(pageable));
+    }
+
+    /**
+     * Devuelve los productos de una categoría específica.
+     */
+    @GetMapping("/category/{categoryId}")
+    public ResponseEntity<List<Product>> getByCategory(@PathVariable Long categoryId) {
+        return ResponseEntity.ok(catalogService.findByCategoryId(categoryId));
+    }
+
+    /**
+     * Devuelve los productos de una marca específica.
+     */
+    @GetMapping("/brand/{brandId}")
+    public ResponseEntity<List<Product>> getByBrand(@PathVariable Long brandId) {
+        return ResponseEntity.ok(catalogService.findByBrandId(brandId));
+    }
+
+    /**
+     * Obtiene productos activos de una categoría específica, paginado.
+     */
+    @GetMapping("/category-activo/{categoryId}")
+    public ResponseEntity<Page<Product>> activosPorCategoria(@PathVariable Long categoryId, Pageable pageable) {
+        return ResponseEntity.ok(catalogService.findByCategoryAndActivoTrue(categoryId, pageable));
+    }
+
+    /**
+     * Obtiene productos activos de una marca específica, paginado.
+     */
+    @GetMapping("/brand-activo/{brandId}")
+    public ResponseEntity<Page<Product>> activosPorMarca(@PathVariable Long brandId, Pageable pageable) {
+        return ResponseEntity.ok(catalogService.findByBrandAndActivoTrue(brandId, pageable));
+    }
+
+    /**
+     * Búsqueda "fuzzy" por nombre o descripción (usa ILIKE) para sugerencias o búsquedas globales.
+     */
+    @GetMapping("/fuzzy-search")
+    public ResponseEntity<Page<Product>> fuzzySearchNombreDesc(@RequestParam String nombre, Pageable pageable) {
+        return ResponseEntity.ok(catalogService.fuzzySearchNombreDescripcion(nombre, pageable));
+    }
+
+    /**
+     * Busca variantes cuyo SKU contiene la cadena indicada.
+     */
+    @GetMapping("/buscar-en-variantes")
+    public ResponseEntity<List<ProductVariant>> buscarEnVariantes(@RequestParam String q) {
+        return ResponseEntity.ok(catalogService.buscarEnVariantes(q));
+    }
 
 }

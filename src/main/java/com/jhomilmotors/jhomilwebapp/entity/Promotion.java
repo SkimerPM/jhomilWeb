@@ -2,42 +2,56 @@ package com.jhomilmotors.jhomilwebapp.entity;
 
 import com.jhomilmotors.jhomilwebapp.enums.DiscountType;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+
 
 @Entity
 @Table(name = "core_promocion")
+@Data
+@AllArgsConstructor
+
 public class Promotion {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(length = 150)
+    @Column(name = "nombre", length = 150, nullable = false)
     private String nombre;
 
-    @Column(length = 50, unique = true, nullable = true)
+    @Column(name = "codigo", length = 50, unique = true)
     private String codigo;
 
     @Column(name = "tipo_descuento", length = 20, nullable = false)
+    @Convert(converter = com.jhomilmotors.jhomilwebapp.converter.DiscountTypeConverter.class)
     private DiscountType tipoDescuento;
 
-    @Column(name = "valor_descuento", precision = 8, scale = 2)
+    @Column(name = "valor_descuento", precision = 8, scale = 2, nullable = false)
     private BigDecimal valorDescuento = BigDecimal.ZERO;
 
     @Column(name = "fecha_inicio")
     private LocalDateTime fechaInicio = LocalDateTime.now();
 
-    @Column(name = "fecha_fin", nullable = true)
+    @Column(name = "fecha_fin")
     private LocalDateTime fechaFin;
 
+    @Column(name = "activo")
     private Boolean activo = true;
 
-    @Column(name = "min_compra", precision = 12, scale = 2, nullable = true)
+    @Column(name = "min_compra", precision = 12, scale = 2)
     private BigDecimal minCompra;
 
-    @Column(name = "max_usos", nullable = true)
+    @Column(name = "max_usos")
     private Integer maxUsos;
+
+    // Relación inversa
+    @OneToMany(mappedBy = "promocion", cascade = CascadeType.ALL, orphanRemoval = false)
+    private List<PromotionProduct> productos;
+
 
     public Promotion() {
     }

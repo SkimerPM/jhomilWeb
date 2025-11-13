@@ -3,7 +3,8 @@ package com.jhomilmotors.jhomilwebapp.controller;
 import com.jhomilmotors.jhomilwebapp.dto.CreatePurchaseDTO;
 import com.jhomilmotors.jhomilwebapp.dto.PurchaseDTO;
 import com.jhomilmotors.jhomilwebapp.dto.UpdatePurchaseDTO;
-import com.jhomilmotors.jhomilwebapp.entity.Purchase.PurchaseStatus;
+
+import com.jhomilmotors.jhomilwebapp.enums.PurchaseStatus;
 import com.jhomilmotors.jhomilwebapp.service.PurchaseService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

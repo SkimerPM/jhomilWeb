@@ -7,6 +7,8 @@ import java.math.BigDecimal;
 @Data
 @Builder
 public class ProductCatalogResponseDTO {
+
+    ///  NO SE SI SE DEBA ELIMINAR, NO ESTA SIENDO USADA POR NADIE
     private Long id; // ID del Producto base
     private String nombre;
     private String descripcion;

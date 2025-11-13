@@ -1,42 +1,47 @@
 package com.jhomilmotors.jhomilwebapp.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "core_promocionproducto")
+@Data
+@AllArgsConstructor
 public class PromotionProduct {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "promocion_id", nullable = false)
     private Promotion promocion;
 
-    @ManyToOne
-    @JoinColumn(name = "producto_id", nullable = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "producto_id")
     private Product producto;
 
-    @ManyToOne
-    @JoinColumn(name = "variante_id", nullable = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variante_id")
     private ProductVariant variante;
 
-    @ManyToOne
-    @JoinColumn(name = "producto_gratis_id", nullable = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "producto_gratis_id")
     private Product productoGratis;
 
-    @ManyToOne
-    @JoinColumn(name = "variante_gratis_id", nullable = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variante_gratis_id")
     private ProductVariant varianteGratis;
 
-    // **Aquí sí van**
-    @Column(nullable = false)
-    private Integer cantidadRequerida = 1;  // ej: “compra 2”
+    @Column(name = "cantidad_requerida", nullable = false)
+    private Integer cantidadRequerida = 1;
 
-    @Column(nullable = false)
-    private Integer cantidadGratis = 1;     // ej: “lleva 1”
+    @Column(name = "cantidad_gratis", nullable = false)
+    private Integer cantidadGratis = 1;
 
     public PromotionProduct() {
     }

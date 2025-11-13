@@ -1,6 +1,7 @@
 package com.jhomilmotors.jhomilwebapp.dto;
 
-import com.jhomilmotors.jhomilwebapp.entity.Purchase.PurchaseStatus;
+
+import com.jhomilmotors.jhomilwebapp.enums.PurchaseStatus;
 import lombok.*;
 
 import java.math.BigDecimal;
