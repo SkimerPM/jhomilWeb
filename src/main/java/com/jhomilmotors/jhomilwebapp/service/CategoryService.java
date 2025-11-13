@@ -1,9 +1,11 @@
 package com.jhomilmotors.jhomilwebapp.service;
 
+import com.jhomilmotors.jhomilwebapp.dto.CategoryRequestDTO;
 import com.jhomilmotors.jhomilwebapp.entity.Category;
 import com.jhomilmotors.jhomilwebapp.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -40,4 +42,19 @@ public class CategoryService {
     public List<Category> getRootCategoriesOrdered() {
         return categoryRepository.findRootCategories();
     }
+
+    @Transactional
+    public Category createCategory(CategoryRequestDTO dto) {
+        Category category = new Category();
+        category.setNombre(dto.getNombre());
+        category.setSlug(dto.getSlug());
+        category.setDescripcion(dto.getDescripcion());
+        if (dto.getPadreId() != null) {
+            Category padre = categoryRepository.findById(dto.getPadreId())
+                    .orElseThrow(() -> new IllegalArgumentException("Categoría padre no encontrada"));
+            category.setPadre(padre);
+        }
+        return categoryRepository.save(category);
+    }
+
 }

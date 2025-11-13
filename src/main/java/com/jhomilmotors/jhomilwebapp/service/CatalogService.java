@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -276,5 +278,225 @@ public class CatalogService {
     public List<ProductVariant> buscarEnVariantes(String q) {
         return productVariantRepository.buscarEnVariantes(q);
     }
+
+    @Transactional
+    public Product createProductWithVariantsAndImages(ProductCreationRequestDTO request) {
+        // 1. Validaciones de campos obligatorios y unicidad
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada"));
+        Brand brand = brandRepository.findById(request.getBrandId())
+                .orElseThrow(() -> new IllegalArgumentException("Marca no encontrada"));
+        if (request.getSkuBase() == null || request.getSkuBase().trim().isEmpty()) {
+            throw new IllegalArgumentException("El skuBase es obligatorio.");
+        }
+        if (productRepository.findBySkuBase(request.getSkuBase()).isPresent()) {
+            throw new IllegalArgumentException("Ya existe un producto con ese skuBase.");
+        }
+        if (request.getNombre() == null || request.getNombre().trim().isEmpty()) {
+            throw new IllegalArgumentException("El nombre es obligatorio.");
+        }
+        if (request.getPrecioBase() == null || request.getPrecioBase().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("El precioBase debe ser mayor o igual a 0.");
+        }
+        // Validación: al menos una imagen principal
+        if (request.getImagenes() == null || request.getImagenes().stream()
+                .noneMatch(im -> Boolean.TRUE.equals(im.getEsPrincipal()))) {
+            throw new IllegalArgumentException("El producto debe tener al menos una imagen principal (esPrincipal=true).");
+        }
+
+        // 2. Crear el producto principal
+        Product product = new Product();
+        product.setNombre(request.getNombre());
+        product.setDescripcion(request.getDescripcion());
+        product.setSkuBase(request.getSkuBase());
+        product.setPrecioBase(request.getPrecioBase());
+        product.setPesoKg(request.getPesoKg());
+        product.setVolumenM3(request.getVolumenM3());
+        product.setActivo(request.getActivo() != null ? request.getActivo() : true);
+        product.setCategory(category);
+        product.setBrand(brand);
+        Product savedProduct = productRepository.save(product);
+
+        // 3. Guardar imágenes del producto principal
+        for (ProductCreationRequestDTO.ImagenRequest imgDto : request.getImagenes()) {
+            Image img = new Image();
+            img.setProduct(savedProduct);
+            img.setUrl(imgDto.getUrl());
+            img.setEsPrincipal(imgDto.getEsPrincipal() != null ? imgDto.getEsPrincipal() : false);
+            img.setOrden(imgDto.getOrden() != null ? imgDto.getOrden() : 0);
+            imageRepository.save(img);
+        }
+
+        // 4. Guardar variantes y sus imágenes
+        if (request.getVariantes() != null) {
+            for (ProductCreationRequestDTO.VarianteRequest vDto : request.getVariantes()) {
+                if (vDto.getSku() == null || vDto.getSku().trim().isEmpty()) {
+                    throw new IllegalArgumentException("SKU de variante es obligatorio.");
+                }
+                if (productVariantRepository.findBySku(vDto.getSku()).isPresent()) {
+                    throw new IllegalArgumentException("Ya existe una variante con el SKU: " + vDto.getSku());
+                }
+                if (vDto.getPrecio() == null || vDto.getPrecio().compareTo(BigDecimal.ZERO) < 0) {
+                    throw new IllegalArgumentException("Precio de variante debe ser mayor o igual a 0.");
+                }
+                if (vDto.getStock() == null || vDto.getStock() < 0) {
+                    throw new IllegalArgumentException("Stock de variante debe ser mayor o igual a 0.");
+                }
+
+                ProductVariant variant = new ProductVariant();
+                variant.setProduct(savedProduct);
+                variant.setSku(vDto.getSku());
+                variant.setPrecio(vDto.getPrecio());
+                variant.setStock(vDto.getStock());
+                variant.setPesoKg(vDto.getPesoKg());
+                variant.setActivo(vDto.getActivo() != null ? vDto.getActivo() : true);
+                ProductVariant savedVariant = productVariantRepository.save(variant);
+
+                if (vDto.getImagenes() != null) {
+                    for (ProductCreationRequestDTO.ImagenRequest imgDto : vDto.getImagenes()) {
+                        Image img = new Image();
+                        img.setVariante(savedVariant);
+                        img.setUrl(imgDto.getUrl());
+                        img.setEsPrincipal(imgDto.getEsPrincipal() != null ? imgDto.getEsPrincipal() : false);
+                        img.setOrden(imgDto.getOrden() != null ? imgDto.getOrden() : 0);
+                        imageRepository.save(img);
+                    }
+                }
+            }
+        }
+        return savedProduct;
+    }
+
+
+
+    @Transactional
+    public Product updateProduct(Long id, ProductUpdateRequestDTO request) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
+
+        // Actualiza campos uno por uno si vienen en el request
+        if (request.getNombre() != null) product.setNombre(request.getNombre());
+        if (request.getDescripcion() != null) product.setDescripcion(request.getDescripcion());
+        if (request.getSkuBase() != null) product.setSkuBase(request.getSkuBase());
+        if (request.getPrecioBase() != null) product.setPrecioBase(request.getPrecioBase());
+        if (request.getPesoKg() != null) product.setPesoKg(request.getPesoKg());
+        if (request.getVolumenM3() != null) product.setVolumenM3(request.getVolumenM3());
+        if (request.getActivo() != null) product.setActivo(request.getActivo());
+        if (request.getCategoryId() != null) {
+            Category category = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada"));
+            product.setCategory(category);
+        }
+        if (request.getBrandId() != null) {
+            Brand brand = brandRepository.findById(request.getBrandId())
+                    .orElseThrow(() -> new IllegalArgumentException("Marca no encontrada"));
+            product.setBrand(brand);
+        }
+
+        // Imágenes
+        if (request.getImagenes() != null) {
+            imageRepository.deleteAll(product.getImagenes());
+            for (ProductUpdateRequestDTO.ImagenRequest imgDto : request.getImagenes()) {
+                Image img = new Image();
+                img.setProduct(product);
+                img.setUrl(imgDto.getUrl());
+                img.setEsPrincipal(imgDto.getEsPrincipal() != null ? imgDto.getEsPrincipal() : false);
+                img.setOrden(imgDto.getOrden() != null ? imgDto.getOrden() : 0);
+                imageRepository.save(img);
+            }
+        }
+
+        // Variantes
+        if (request.getVariantes() != null) {
+            for (ProductUpdateRequestDTO.VarianteUpdateRequest vDto : request.getVariantes()) {
+                if (vDto.getEliminar() != null && vDto.getEliminar()) {
+                    if (vDto.getId() != null) productVariantRepository.deleteById(vDto.getId());
+                    continue;
+                }
+                ProductVariant variant;
+                if (vDto.getId() != null) {
+                    // Actualizar variante existente
+                    variant = productVariantRepository.findById(vDto.getId())
+                            .orElseThrow(() -> new ResourceNotFoundException("Variante no encontrada"));
+                } else {
+                    // Crear nueva
+                    variant = new ProductVariant();
+                    variant.setProduct(product);
+                }
+                if (vDto.getSku() != null) variant.setSku(vDto.getSku());
+                if (vDto.getPrecio() != null) variant.setPrecio(vDto.getPrecio());
+                if (vDto.getStock() != null) variant.setStock(vDto.getStock());
+                if (vDto.getPesoKg() != null) variant.setPesoKg(vDto.getPesoKg());
+                if (vDto.getActivo() != null) variant.setActivo(vDto.getActivo());
+
+                ProductVariant savedVar = productVariantRepository.save(variant);
+                // Imágenes de la variante
+                if (vDto.getImagenes() != null) {
+                    imageRepository.deleteAll(savedVar.getImagenes());
+                    for (ProductUpdateRequestDTO.ImagenRequest imgDto : vDto.getImagenes()) {
+                        Image img = new Image();
+                        img.setVariante(savedVar);
+                        img.setUrl(imgDto.getUrl());
+                        img.setEsPrincipal(imgDto.getEsPrincipal() != null ? imgDto.getEsPrincipal() : false);
+                        img.setOrden(imgDto.getOrden() != null ? imgDto.getOrden() : 0);
+                        imageRepository.save(img);
+                    }
+                }
+            }
+        }
+        return productRepository.save(product);
+    }
+
+
+    @Transactional
+    public void deleteProduct(Long id) {
+        if (!productRepository.existsById(id)) throw new ResourceNotFoundException("Producto no encontrado");
+        productRepository.deleteById(id);
+    }
+
+
+
+    @Transactional
+    public Image addImageToProduct(Long productId, ImagenIndividualDTO dto) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+        Image img = new Image();
+        img.setProduct(product);
+        img.setUrl(dto.getUrl());
+        img.setEsPrincipal(dto.getEsPrincipal() != null ? dto.getEsPrincipal() : false);
+        img.setOrden(dto.getOrden() != null ? dto.getOrden() : 0);
+        return imageRepository.save(img);
+    }
+    @Transactional
+    public Image updateImage(Long imagenId, ImagenIndividualDTO dto) {
+        Image img = imageRepository.findById(imagenId)
+                .orElseThrow(() -> new IllegalArgumentException("Imagen no encontrada"));
+        if (dto.getUrl() != null) img.setUrl(dto.getUrl());
+        if (dto.getEsPrincipal() != null) img.setEsPrincipal(dto.getEsPrincipal());
+        if (dto.getOrden() != null) img.setOrden(dto.getOrden());
+        return imageRepository.save(img);
+    }
+
+    @Transactional
+    public void deleteImage(Long imagenId) {
+        if (!imageRepository.existsById(imagenId))
+            throw new IllegalArgumentException("Imagen no encontrada");
+        imageRepository.deleteById(imagenId);
+    }
+
+    @Transactional
+    public Image addImageToVariant(Long variantId, ImagenIndividualDTO dto) {
+        ProductVariant variant = productVariantRepository.findById(variantId)
+                .orElseThrow(() -> new IllegalArgumentException("Variante no encontrada"));
+        Image img = new Image();
+        img.setVariante(variant);
+        img.setUrl(dto.getUrl());
+        img.setEsPrincipal(dto.getEsPrincipal() != null ? dto.getEsPrincipal() : false);
+        img.setOrden(dto.getOrden() != null ? dto.getOrden() : 0);
+        return imageRepository.save(img);
+    }
+
+
+
 
 }

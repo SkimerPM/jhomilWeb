@@ -1,8 +1,11 @@
 package com.jhomilmotors.jhomilwebapp.controller;
 
+import com.jhomilmotors.jhomilwebapp.dto.CategoryRequestDTO;
+import com.jhomilmotors.jhomilwebapp.dto.CategoryResponseDTO;
 import com.jhomilmotors.jhomilwebapp.entity.Category;
 import com.jhomilmotors.jhomilwebapp.service.CategoryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,6 +15,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CategoryController {
     private final CategoryService categoryService;
+
+    @PostMapping
+    public ResponseEntity<CategoryResponseDTO> createCategory(@RequestBody CategoryRequestDTO request) {
+        Category creada = categoryService.createCategory(request);
+        return ResponseEntity.status(201).body(new CategoryResponseDTO(creada.getId(), creada.getNombre()));
+    }
+
+
 
     @GetMapping
     public List<Category> getAll() {

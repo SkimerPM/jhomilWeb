@@ -1,11 +1,12 @@
 package com.jhomilmotors.jhomilwebapp.controller;
 
+import com.jhomilmotors.jhomilwebapp.dto.*;
 import com.jhomilmotors.jhomilwebapp.dto.brand.BrandRequestDTO;
 import com.jhomilmotors.jhomilwebapp.dto.brand.BrandResponseDTO;
-import com.jhomilmotors.jhomilwebapp.dto.ProductCatalogResponse;
-import com.jhomilmotors.jhomilwebapp.dto.ProductDetailsResponseDTO;
+import com.jhomilmotors.jhomilwebapp.entity.Image;
 import com.jhomilmotors.jhomilwebapp.entity.Product;
 import com.jhomilmotors.jhomilwebapp.entity.ProductVariant;
+import com.jhomilmotors.jhomilwebapp.exception.ResourceNotFoundException;
 import com.jhomilmotors.jhomilwebapp.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -17,6 +18,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/catalog")
@@ -33,8 +35,179 @@ public class CatalogController {
         return ResponseEntity.ok(productos);
     }
 
-    // Detalles de producto
-    @GetMapping("/{id}")
+    // =======================
+    //    Imágenes Producto
+    // =======================
+
+    /**
+     * Agrega una imagen a un producto.
+     *
+     * @param productId ID del producto dueño de la imagen.
+     * @param dto Datos de la imagen ({@code url}, principalidad, orden).
+     * @return ID de la imagen creada.
+     * @response 201 Imagen creada correctamente.
+     * @response 400 Producto no encontrado o datos inválidos.
+     *
+     * Ejemplo de request:
+     * <pre>
+     * {
+     *   "url": "https://miweb.com/foto.jpg",
+     *   "esPrincipal": true,
+     *   "orden": 1
+     * }
+     * </pre>
+     * Ejemplo de respuesta:
+     * <pre>
+     * { "imagenId": 123 }
+     * </pre>
+     */
+    @PostMapping("/product/{productId}/images")
+    public ResponseEntity<?> addImageToProduct(@PathVariable Long productId, @RequestBody ImagenIndividualDTO dto) {
+        try {
+            Image saved = catalogService.addImageToProduct(productId, dto);
+            return ResponseEntity.status(201).body(Map.of("imagenId", saved.getId()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    /**
+     * Agrega una imagen a una variante dada por su ID.
+     *
+     * @param variantId ID de la variante.
+     * @param dto Datos de la imagen.
+     * @return ID de la imagen creada.
+     * @response 201 Imagen creada, 400 si variante no existe o datos inválidos.
+     */
+    @PostMapping("/variant/{variantId}/images")
+    public ResponseEntity<?> addImageToVariant(@PathVariable Long variantId, @RequestBody ImagenIndividualDTO dto) {
+        try {
+            Image saved = catalogService.addImageToVariant(variantId, dto);
+            return ResponseEntity.status(201).body(Map.of("imagenId", saved.getId()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    /**
+     * Actualiza los datos de una imagen (producto o variante) según su ID.
+     *
+     * @param imageId ID de la imagen a editar.
+     * @param dto Nuevos datos de la imagen (url, principalidad, orden).
+     * @return Datos de la imagen actualizada.
+     * @response 200 Imagen actualizada.
+     * @response 400 Imagen inexistente o datos inválidos.
+     */
+    @PutMapping("/images/{imageId}")
+    public ResponseEntity<?> updateImage(@PathVariable Long imageId, @RequestBody ImagenIndividualDTO dto) {
+        try {
+            Image img = catalogService.updateImage(imageId, dto);
+            return ResponseEntity.ok(Map.of("imagenId", img.getId(), "url", img.getUrl()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    /**
+     * Elimina una imagen de producto o variante.
+     *
+     * @param imageId ID de la imagen a eliminar.
+     * @response 204 Imagen eliminada.
+     * @response 400 Imagen no existe.
+     */
+    @DeleteMapping("/images/{imageId}")
+    public ResponseEntity<?> deleteImage(@PathVariable Long imageId) {
+        try {
+            catalogService.deleteImage(imageId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    // ==============
+    //   Ejemplo para el DTO de imagen individual
+    // ==============
+    /**
+     * DTO usado para agregar/editar una sola imagen de producto o variante.
+     *
+     * {
+     *   "url": "string",
+     *   "esPrincipal": true,
+     *   "orden": 1
+     * }
+     */
+
+    // =======================
+    //    Gestión de productos
+    // =======================
+
+    /**
+     * Crea un producto junto a sus variantes e imágenes.
+     *
+     * @param request DTO con todos los datos del producto.
+     * @return ID y nombre del producto creado.
+     * @response 201 Producto creado, 400 si datos inválidos/duplicados.
+     *
+     * Ejemplo de request:
+     * {
+     *   "nombre": "Aceite Yamalube 20W-50",
+     *   "skuBase": "YAM-20W50",
+     *   "precioBase": 35.00,
+     *   "imagenes": [{ ... }]
+     *   "variantes": [{ ... }]
+     * }
+     */
+    @PostMapping("/product")
+    public ResponseEntity<?> createProduct(@RequestBody ProductCreationRequestDTO request) {
+        try {
+            Product created = catalogService.createProductWithVariantsAndImages(request);
+            return ResponseEntity.status(201).body(Map.of("productId", created.getId(), "nombre", created.getNombre()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    /**
+     * Actualiza los datos de un producto y sus variantes.
+     *
+     * @param id ID del producto.
+     * @param request DTO de actualización completo.
+     * @return ID del producto actualizado.
+     * @response 200 OK, 400 si datos inválidos/error de validación.
+     */
+    @PutMapping("/product/{id}")
+    public ResponseEntity<?> updateProduct(@PathVariable Long id, @RequestBody ProductUpdateRequestDTO request) {
+        try {
+            Product updated = catalogService.updateProduct(id, request);
+            return ResponseEntity.ok(Map.of("productId", updated.getId(), "nombre", updated.getNombre()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    /**
+     * Elimina un producto y sus variantes.
+     *
+     * @param id ID del producto.
+     * @response 204 Si se elimina correctamente, 404 si no existe.
+     */
+    @DeleteMapping("/product/{id}")
+    public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
+        try {
+            catalogService.deleteProduct(id);
+            return ResponseEntity.noContent().build();
+        } catch (ResourceNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    /**
+     * Obtiene los detalles completos de un producto (info, variantes, imágenes).
+     * @param id ID de producto.
+     * @return DTO completo de detalles (ProductDetailsResponseDTO).
+     */
+    @GetMapping("/product/{id}")
     public ResponseEntity<ProductDetailsResponseDTO> getProductDetails(@PathVariable Long id) {
         try {
             ProductDetailsResponseDTO details = catalogService.getProductDetails(id);
@@ -43,6 +216,7 @@ public class CatalogController {
             return ResponseEntity.notFound().build();
         }
     }
+
 
     // soporta tanto listar todo, como listar por nombre.
     // /admin/brands?page=0&size=10"
@@ -167,5 +341,6 @@ public class CatalogController {
     public ResponseEntity<List<ProductVariant>> buscarEnVariantes(@RequestParam String q) {
         return ResponseEntity.ok(catalogService.buscarEnVariantes(q));
     }
+
 
 }
