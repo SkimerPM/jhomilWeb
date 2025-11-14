@@ -44,9 +44,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/api/users").permitAll() //añadido
+                                .requestMatchers(HttpMethod.POST, "/api/upload").authenticated()
+                                .requestMatchers(HttpMethod.DELETE, "/api/delete-image/**").authenticated()
 
 
-                        // Permitir GET a usuarios por email (opcional si quieres que sea público)
+
+                                // Permitir GET a usuarios por email (opcional si quieres que sea público)
 //                        .requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
                                 // Promociones: permitir GET a todos, proteger POST/PUT/DELETE solo para ADMIN
                                 .requestMatchers(HttpMethod.GET, "/api/promotions/**").permitAll()
