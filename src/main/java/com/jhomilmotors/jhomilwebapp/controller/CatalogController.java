@@ -222,6 +222,8 @@ public class CatalogController {
     }
 
 
+
+
     // soporta tanto listar todo, como listar por nombre.
     // /admin/brands?page=0&size=10"
     // /admin/brands?name=algo&page=0&size=10"
@@ -270,12 +272,13 @@ public class CatalogController {
      */
 
     @GetMapping("/admin/products")
-    public Page<Product> getAllAdminProductsPaged(
+    public Page<AdminProductListDTO> getAllAdminProductsPaged(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return catalogService.findAllAdminProductsPaged(pageable);
+        return catalogService.getAllAdminProductsPaged(pageable);
     }
+
 
 
     /**
@@ -285,6 +288,17 @@ public class CatalogController {
     public ResponseEntity<List<Product>> getActivos() {
         return ResponseEntity.ok(catalogService.findByActivoTrue());
     }
+
+    /**
+     * Obtiene las variantes de un producto
+     */
+    @GetMapping("/product/{productId}/variants")
+    public ResponseEntity<List<ProductVariant>> getVariantsByProduct(@PathVariable Long productId) {
+        List<ProductVariant> variantes = catalogService.findVariantsByProductId(productId);
+        return ResponseEntity.ok(variantes);
+    }
+
+
 
     /**
      * Obtiene todos los productos inactivos (ocultos/deshabilitados).

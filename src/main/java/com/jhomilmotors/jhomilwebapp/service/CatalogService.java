@@ -42,10 +42,16 @@ public class CatalogService {
                 .map(this::mapProductToCatalogResponse)
                 .collect(Collectors.toList());
     }
-    //este es el metodo para buscar con paginacion en admin.
-    public Page<Product> findAllAdminProductsPaged(Pageable pageable) {
-        return productRepository.findAll(pageable);
+
+    public Page<AdminProductListDTO> getAllAdminProductsPaged(Pageable pageable) {
+        return productRepository.findAll(pageable)
+                .map(AdminProductListDTO::fromEntity);
     }
+
+    public List<ProductVariant> findVariantsByProductId(Long productId) {
+        return productVariantRepository.findByProductId(productId);
+    }
+
 
 
     private ProductCatalogResponse mapProductToCatalogResponse(Product product) {
