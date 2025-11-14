@@ -1,9 +1,12 @@
 package com.jhomilmotors.jhomilwebapp.service;
 
+import com.jhomilmotors.jhomilwebapp.dto.CategoryAdminDTO;
 import com.jhomilmotors.jhomilwebapp.dto.CategoryRequestDTO;
 import com.jhomilmotors.jhomilwebapp.entity.Category;
 import com.jhomilmotors.jhomilwebapp.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,6 +58,33 @@ public class CategoryService {
             category.setPadre(padre);
         }
         return categoryRepository.save(category);
+    }
+
+    private CategoryAdminDTO toAdminDTO(Category category) {
+        if (category == null) return null;
+        CategoryAdminDTO dto = new CategoryAdminDTO();
+        dto.setId(category.getId());
+        dto.setNombre(category.getNombre());
+        dto.setSlug(category.getSlug());
+        dto.setDescripcion(category.getDescripcion());
+
+        if (category.getPadre() != null) {
+            dto.setPadreId(category.getPadre().getId());
+            dto.setPadreNombre(category.getPadre().getNombre());
+        }
+
+        if (category.getSubcategorias() != null && !category.getSubcategorias().isEmpty()) {
+            dto.setSubcategorias(
+                    category.getSubcategorias().stream()
+                            .map(this::toAdminDTO)
+                            .collect(java.util.stream.Collectors.toList())
+            );
+        }
+        return dto;
+    }
+    public Page<CategoryAdminDTO> getAllAdminPaged(Pageable pageable) {
+        return categoryRepository.findAll(pageable)
+                .map(this::toAdminDTO);
     }
 
 }

@@ -29,12 +29,10 @@ public class Category {
     // Relación autoreferencial para subcategorías
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_padre_id")
-    @JsonBackReference
     private Category padre;
 
     // Relación inversa para subcategorías
     @OneToMany(mappedBy = "padre", cascade = CascadeType.ALL, orphanRemoval = false)
-    @JsonManagedReference
     private java.util.List<Category> subcategorias;
 
 

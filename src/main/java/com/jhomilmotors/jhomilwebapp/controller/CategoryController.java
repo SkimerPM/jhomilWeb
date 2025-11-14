@@ -1,10 +1,13 @@
 package com.jhomilmotors.jhomilwebapp.controller;
 
+import com.jhomilmotors.jhomilwebapp.dto.CategoryAdminDTO;
 import com.jhomilmotors.jhomilwebapp.dto.CategoryRequestDTO;
 import com.jhomilmotors.jhomilwebapp.dto.CategoryResponseDTO;
 import com.jhomilmotors.jhomilwebapp.entity.Category;
 import com.jhomilmotors.jhomilwebapp.service.CategoryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,10 +27,19 @@ public class CategoryController {
 
 
 
+//    @GetMapping
+//    public List<Category> getAll() {
+//        return categoryService.getAll();
+//    }
+
     @GetMapping
-    public List<Category> getAll() {
-        return categoryService.getAll();
+    public Page<CategoryAdminDTO> getAllPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        return categoryService.getAllAdminPaged(pageable);
     }
+
 
     @GetMapping("/slug/{slug}")
     public Category getBySlug(@PathVariable String slug) {
