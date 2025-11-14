@@ -1,5 +1,7 @@
 package com.jhomilmotors.jhomilwebapp.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -27,10 +29,12 @@ public class Category {
     // Relación autoreferencial para subcategorías
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_padre_id")
+    @JsonBackReference
     private Category padre;
 
     // Relación inversa para subcategorías
     @OneToMany(mappedBy = "padre", cascade = CascadeType.ALL, orphanRemoval = false)
+    @JsonManagedReference
     private java.util.List<Category> subcategorias;
 
 

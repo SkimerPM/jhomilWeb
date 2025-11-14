@@ -8,15 +8,19 @@ import com.jhomilmotors.jhomilwebapp.entity.Product;
 import com.jhomilmotors.jhomilwebapp.entity.ProductVariant;
 import com.jhomilmotors.jhomilwebapp.exception.ResourceNotFoundException;
 import com.jhomilmotors.jhomilwebapp.service.CatalogService;
+import com.jhomilmotors.jhomilwebapp.service.CloudinaryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -260,6 +264,18 @@ public class CatalogController {
         return ResponseEntity.ok(imagenes);
     }
 
+
+    /**
+     * Obtiene todos los productos (A/I) paginados.
+     */
+
+    @GetMapping("/admin/products")
+    public Page<Product> getAllAdminProductsPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return catalogService.findAllAdminProductsPaged(pageable);
+    }
 
 
     /**
