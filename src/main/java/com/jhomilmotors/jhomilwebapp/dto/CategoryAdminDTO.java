@@ -1,10 +1,14 @@
 package com.jhomilmotors.jhomilwebapp.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class CategoryAdminDTO {
     private Long id;
     private String nombre;

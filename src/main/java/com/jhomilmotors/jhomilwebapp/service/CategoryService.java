@@ -21,27 +21,21 @@ public class CategoryService {
     public List<Category> getAll() {
         return categoryRepository.findAll();
     }
-
     public Optional<Category> getBySlug(String slug) {
         return categoryRepository.findBySlug(slug);
     }
-
     public Optional<Category> getByNombre(String nombre) {
         return categoryRepository.findByNombreIgnoreCase(nombre);
     }
-
     public List<Category> getSubcategorias(Long padreId) {
         return categoryRepository.findByPadreId(padreId);
     }
-
     public List<Category> getCategoriasRaiz() {
         return categoryRepository.findByPadreIsNull();
     }
-
     public List<Category> searchByNombre(String nombre) {
         return categoryRepository.findByNombreContainingIgnoreCase(nombre);
     }
-
     public List<Category> getRootCategoriesOrdered() {
         return categoryRepository.findRootCategories();
     }
@@ -60,31 +54,11 @@ public class CategoryService {
         return categoryRepository.save(category);
     }
 
-    private CategoryAdminDTO toAdminDTO(Category category) {
-        if (category == null) return null;
-        CategoryAdminDTO dto = new CategoryAdminDTO();
-        dto.setId(category.getId());
-        dto.setNombre(category.getNombre());
-        dto.setSlug(category.getSlug());
-        dto.setDescripcion(category.getDescripcion());
-
-        if (category.getPadre() != null) {
-            dto.setPadreId(category.getPadre().getId());
-            dto.setPadreNombre(category.getPadre().getNombre());
-        }
-
-        if (category.getSubcategorias() != null && !category.getSubcategorias().isEmpty()) {
-            dto.setSubcategorias(
-                    category.getSubcategorias().stream()
-                            .map(this::toAdminDTO)
-                            .collect(java.util.stream.Collectors.toList())
-            );
-        }
-        return dto;
-    }
+    @Transactional(readOnly = true)
     public Page<CategoryAdminDTO> getAllAdminPaged(Pageable pageable) {
-        return categoryRepository.findAll(pageable)
-                .map(this::toAdminDTO);
+        // Esto llama a la nueva @Query segura en el repositorio
+        return categoryRepository.findAllAsAdminDTO(pageable);
     }
 
+    // --- (El método 'toAdminDTO' que causaba el crash ya no es necesario) ---
 }
