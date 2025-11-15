@@ -50,6 +50,4 @@ public class ProductVariant {
 
     @OneToMany(mappedBy = "variante", cascade = CascadeType.ALL, orphanRemoval = false)
     private List<Image> imagenes;
-
-
 }
