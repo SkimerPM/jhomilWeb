@@ -139,8 +139,11 @@ public class CatalogService {
                 .id(product.getId())
                 .nombre(product.getNombre())
                 .descripcion(product.getDescripcion())
+                .skuBase(product.getSkuBase())
                 .precioBase(product.getPrecioBase())
+                .brandId(product.getBrand() != null ? product.getBrand().getId() : null)
                 .marcaNombre(product.getBrand() != null ? product.getBrand().getNombre() : null)
+                .categoryId(product.getCategory() != null ? product.getCategory().getId() : null)
                 .categoriaNombre(product.getCategory().getNombre())
                 .activo(product.getActivo())
                 .atributos(atributos)
@@ -407,35 +410,42 @@ public class CatalogService {
 
         // Imágenes
         if (request.getImagenes() != null) {
-            List<Image> actuales = imageRepository.findByProductId(product.getId());
-            List<Long> idsEnNuevoRequest = request.getImagenes().stream()
-                    .map(ProductUpdateRequestDTO.ImagenRequest::getId)
-                    .filter(java.util.Objects::nonNull)
-                    .collect(Collectors.toList());
-            // Borra solo las eliminadas
-            for (Image imgActual : actuales) {
-                if (!idsEnNuevoRequest.contains(imgActual.getId())) {
-                    imageRepository.delete(imgActual);
-                }
-            }
-            // Edita o crea
+
+            // 1. Mapea las imágenes existentes para fácil acceso
+            java.util.Map<Long, Image> imagenesActualesMap = product.getImagenes().stream()
+                    .collect(java.util.stream.Collectors.toMap(Image::getId, java.util.function.Function.identity()));
+
+            // 2. Prepara la nueva lista que reemplazará a la antigua
+            java.util.List<Image> nuevaListaImagenes = new java.util.ArrayList<>();
+
             for (ProductUpdateRequestDTO.ImagenRequest imgDto : request.getImagenes()) {
+                Image img;
                 if (imgDto.getId() != null) {
-                    Image img = imageRepository.findById(imgDto.getId())
-                            .orElseThrow(() -> new IllegalArgumentException("Imagen no encontrada"));
-                    img.setUrl(imgDto.getUrl());
-                    img.setEsPrincipal(imgDto.getEsPrincipal() != null ? imgDto.getEsPrincipal() : false);
-                    img.setOrden(imgDto.getOrden() != null ? imgDto.getOrden() : 0);
-                    imageRepository.save(img);
+                    // Es una imagen existente (Actualización)
+                    img = imagenesActualesMap.remove(imgDto.getId());
+                    if (img == null) {
+                        // Opcional: lanzar excepción si el ID no es válido
+                        throw new IllegalArgumentException("Se recibió un ID de imagen inválido: " + imgDto.getId());
+                    }
                 } else {
-                    Image img = new Image();
-                    img.setProduct(product);
-                    img.setUrl(imgDto.getUrl());
-                    img.setEsPrincipal(imgDto.getEsPrincipal() != null ? imgDto.getEsPrincipal() : false);
-                    img.setOrden(imgDto.getOrden() != null ? imgDto.getOrden() : 0);
-                    imageRepository.save(img);
+                    // Es una imagen nueva (Creación)
+                    img = new Image();
+                    img.setProduct(product); // ¡Importante! Asignar el padre
                 }
+
+                // 3. Actualiza/establece los datos de la imagen
+                img.setUrl(imgDto.getUrl());
+                img.setEsPrincipal(imgDto.getEsPrincipal() != null ? imgDto.getEsPrincipal() : false);
+                img.setOrden(imgDto.getOrden() != null ? imgDto.getOrden() : 0);
+
+                nuevaListaImagenes.add(img); // Añade a la nueva lista
             }
+
+            // 4. Reemplaza la colección antigua por la nueva
+            // Hibernate (con orphanRemoval=true) borrará automáticamente
+            // cualquier imagen que quedó en 'imagenesActualesMap' (porque no vinieron en el request)
+            product.getImagenes().clear();
+            product.getImagenes().addAll(nuevaListaImagenes);
         }
         // Variantes
         if (request.getVariantes() != null) {
