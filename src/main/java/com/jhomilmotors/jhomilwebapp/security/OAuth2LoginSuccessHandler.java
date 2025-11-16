@@ -24,7 +24,11 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     }
 
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
+    public void onAuthenticationSuccess(HttpServletRequest request,
+                                        HttpServletResponse response,
+                                        Authentication authentication)
+            throws IOException, ServletException {
+
         DefaultOAuth2User oauthUser = (DefaultOAuth2User) authentication.getPrincipal();
 
         String email = oauthUser.getAttribute("email");
@@ -45,7 +49,18 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         Map<String, Object> claims = Map.of("role", user.getRol().getNombre().name());
         String accessToken = jwtUtil.generateToken(claims, subject);
 
-        // Redirige a la ruta especial del frontend con el accessToken en query param
-        response.sendRedirect("http://localhost:5173/oauth2-callback?token=" + accessToken);
+        // Detectar entorno por el host del backend
+        String serverName = request.getServerName(); // p.ej. "localhost" o "jhomilwebbackend.onrender.com"
+        String frontendBaseUrl;
+
+        if ("jhomilwebbackend.onrender.com".equals(serverName)) { // backend en Render
+            frontendBaseUrl = "https://jhomilwebfrontend.onrender.com";
+        } else { // por defecto, entorno local
+            frontendBaseUrl = "http://localhost:5173";
+        }
+
+        // Redirige al frontend correcto con el token
+        response.sendRedirect(frontendBaseUrl + "/oauth2-callback?token=" + accessToken);
     }
+
 }
