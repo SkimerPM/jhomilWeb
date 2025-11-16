@@ -44,6 +44,7 @@ public class CatalogService {
     // Inyectar la URL base de tu servidor de medios (la que definiste en properties)
     @Value("${app.base-media-url:}")
     private String baseMediaUrl;
+    
 
     public List<ProductCatalogResponse> findAllCatalogProducts() {
         return productRepository.findAllEntities().stream()
