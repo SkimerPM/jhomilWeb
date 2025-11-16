@@ -128,6 +128,7 @@ public class CatalogService {
         List<ProductDetailsResponseDTO.ImagenResponse> imagenes =
                 imageRepository.findByProductIdOrderByOrden(productId).stream()
                         .map(img -> ProductDetailsResponseDTO.ImagenResponse.builder()
+                                .id(img.getId())
                                 .url(img.getUrl())
                                 .esPrincipal(img.getEsPrincipal())
                                 .orden(img.getOrden())
