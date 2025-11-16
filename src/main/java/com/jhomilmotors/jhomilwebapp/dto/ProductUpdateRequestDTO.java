@@ -46,6 +46,7 @@ public class ProductUpdateRequestDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ImagenRequest {
+        private Long id;
         private String url;
         private Boolean esPrincipal;
         private Integer orden;

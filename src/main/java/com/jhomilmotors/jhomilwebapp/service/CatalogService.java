@@ -406,17 +406,36 @@ public class CatalogService {
 
         // Imágenes
         if (request.getImagenes() != null) {
-            imageRepository.deleteAll(product.getImagenes());
+            List<Image> actuales = imageRepository.findByProductId(product.getId());
+            List<Long> idsEnNuevoRequest = request.getImagenes().stream()
+                    .map(ProductUpdateRequestDTO.ImagenRequest::getId)
+                    .filter(java.util.Objects::nonNull)
+                    .collect(Collectors.toList());
+            // Borra solo las eliminadas
+            for (Image imgActual : actuales) {
+                if (!idsEnNuevoRequest.contains(imgActual.getId())) {
+                    imageRepository.delete(imgActual);
+                }
+            }
+            // Edita o crea
             for (ProductUpdateRequestDTO.ImagenRequest imgDto : request.getImagenes()) {
-                Image img = new Image();
-                img.setProduct(product);
-                img.setUrl(imgDto.getUrl());
-                img.setEsPrincipal(imgDto.getEsPrincipal() != null ? imgDto.getEsPrincipal() : false);
-                img.setOrden(imgDto.getOrden() != null ? imgDto.getOrden() : 0);
-                imageRepository.save(img);
+                if (imgDto.getId() != null) {
+                    Image img = imageRepository.findById(imgDto.getId())
+                            .orElseThrow(() -> new IllegalArgumentException("Imagen no encontrada"));
+                    img.setUrl(imgDto.getUrl());
+                    img.setEsPrincipal(imgDto.getEsPrincipal() != null ? imgDto.getEsPrincipal() : false);
+                    img.setOrden(imgDto.getOrden() != null ? imgDto.getOrden() : 0);
+                    imageRepository.save(img);
+                } else {
+                    Image img = new Image();
+                    img.setProduct(product);
+                    img.setUrl(imgDto.getUrl());
+                    img.setEsPrincipal(imgDto.getEsPrincipal() != null ? imgDto.getEsPrincipal() : false);
+                    img.setOrden(imgDto.getOrden() != null ? imgDto.getOrden() : 0);
+                    imageRepository.save(img);
+                }
             }
         }
-
         // Variantes
         if (request.getVariantes() != null) {
             for (ProductUpdateRequestDTO.VarianteUpdateRequest vDto : request.getVariantes()) {
@@ -443,16 +462,36 @@ public class CatalogService {
                 ProductVariant savedVar = productVariantRepository.save(variant);
                 // Imágenes de la variante
                 if (vDto.getImagenes() != null) {
-                    imageRepository.deleteAll(savedVar.getImagenes());
+                    List<Image> actuales = imageRepository.findByVarianteId(savedVar.getId());
+                    List<Long> idsEnNuevoRequest = vDto.getImagenes().stream()
+                            .map(ProductUpdateRequestDTO.ImagenRequest::getId)
+                            .filter(java.util.Objects::nonNull)
+                            .collect(Collectors.toList());
+                    for (Image imgActual : actuales) {
+                        if (!idsEnNuevoRequest.contains(imgActual.getId())) {
+                            imageRepository.delete(imgActual);
+                        }
+                    }
                     for (ProductUpdateRequestDTO.ImagenRequest imgDto : vDto.getImagenes()) {
-                        Image img = new Image();
-                        img.setVariante(savedVar);
-                        img.setUrl(imgDto.getUrl());
-                        img.setEsPrincipal(imgDto.getEsPrincipal() != null ? imgDto.getEsPrincipal() : false);
-                        img.setOrden(imgDto.getOrden() != null ? imgDto.getOrden() : 0);
-                        imageRepository.save(img);
+                        if (imgDto.getId() != null) {
+                            Image img = imageRepository.findById(imgDto.getId())
+                                    .orElseThrow(() -> new IllegalArgumentException("Imagen no encontrada"));
+                            img.setVariante(savedVar);
+                            img.setUrl(imgDto.getUrl());
+                            img.setEsPrincipal(imgDto.getEsPrincipal() != null ? imgDto.getEsPrincipal() : false);
+                            img.setOrden(imgDto.getOrden() != null ? imgDto.getOrden() : 0);
+                            imageRepository.save(img);
+                        } else {
+                            Image img = new Image();
+                            img.setVariante(savedVar);
+                            img.setUrl(imgDto.getUrl());
+                            img.setEsPrincipal(imgDto.getEsPrincipal() != null ? imgDto.getEsPrincipal() : false);
+                            img.setOrden(imgDto.getOrden() != null ? imgDto.getOrden() : 0);
+                            imageRepository.save(img);
+                        }
                     }
                 }
+
             }
         }
         return productRepository.save(product);
