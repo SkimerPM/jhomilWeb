@@ -53,7 +53,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         String serverName = request.getServerName(); // p.ej. "localhost" o "jhomilwebbackend.onrender.com"
         String frontendBaseUrl;
 
-        if ("jhomilwebbackend.onrender.com".equals(serverName)) { // backend en Render
+        if ("jhomilweb.onrender.com".equals(serverName)) { // backend en Render
             frontendBaseUrl = "https://jhomilwebfrontend.onrender.com";
         } else { // por defecto, entorno local
             frontendBaseUrl = "http://localhost:5173";
