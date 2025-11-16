@@ -26,6 +26,9 @@ public class Category {
     @Column(name = "descripcion", columnDefinition = "TEXT")
     private String descripcion;
 
+    @Column(name = "imagen_url_base")
+    private String imagenUrlBase;
+
     // Relación autoreferencial para subcategorías
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_padre_id")

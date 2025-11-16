@@ -39,6 +39,17 @@ public class CatalogController {
         return ResponseEntity.ok(productos);
     }
 
+
+    /**
+     * Obtiene la lista completa de categorías con la URL de imagen construida.
+     * Ideal para el menú de navegación en aplicaciones móviles.
+     */
+    @GetMapping("/categories/full")
+    public ResponseEntity<List<CategoryResponseDTO>> getAllCategoriesForMobile() {
+        List<CategoryResponseDTO> categorias = catalogService.findAllCategoriesForMobile();
+        return ResponseEntity.ok(categorias);
+    }
+
     // =======================
     //    Imágenes Producto
     // =======================
@@ -257,6 +268,9 @@ public class CatalogController {
         catalogService.deleteBrand(id);
         return ResponseEntity.noContent().build(); // 204 No Content si fue exitoso
     }
+
+
+
 
 
 
