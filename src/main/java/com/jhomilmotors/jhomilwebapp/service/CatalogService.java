@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
+
 @Service
 public class CatalogService {
 
@@ -36,6 +38,10 @@ public class CatalogService {
     private BrandRepository brandRepository;
     @Autowired
     private ImageRepository imageRepository;
+
+    // Inyectar la URL base de tu servidor de medios (la que definiste en properties)
+    @Value("${app.base-media-url:}")
+    private String baseMediaUrl;
 
     public List<ProductCatalogResponse> findAllCatalogProducts() {
         return productRepository.findAllEntities().stream()
@@ -164,9 +170,27 @@ public class CatalogService {
                 .build();
     }
 
+    // Método original (para la web, solo ID y Nombre)
     public List<CategoryResponseDTO> findAllCategories() {
         return categoryRepository.findAll().stream()
+                // Usa el constructor simple
                 .map(c -> new CategoryResponseDTO(c.getId(), c.getNombre()))
+                .collect(Collectors.toList());
+    }
+
+    // 🚀 NUEVO MÉTODO PARA EL MÓVIL (Full Categories) 🚀
+    public List<CategoryResponseDTO> findAllCategoriesForMobile() {
+        return categoryRepository.findAll().stream()
+                .map(c -> {
+                    String urlCompleta = null;
+                    // Verifica si el campo de la BD (imagenUrlBase) tiene valor
+                    if (c.getImagenUrlBase() != null && !c.getImagenUrlBase().isEmpty()) {
+                        // Construye la URL completa que el móvil usará
+                        urlCompleta = baseMediaUrl + c.getImagenUrlBase();
+                    }
+                    // Usa el constructor completo
+                    return new CategoryResponseDTO(c.getId(), c.getNombre(), urlCompleta);
+                })
                 .collect(Collectors.toList());
     }
 

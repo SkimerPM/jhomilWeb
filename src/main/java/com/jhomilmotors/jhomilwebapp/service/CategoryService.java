@@ -9,14 +9,19 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class CategoryService {
     private final CategoryRepository categoryRepository;
+    private final CloudinaryService cloudinaryService;
 
     public List<Category> getAll() {
         return categoryRepository.findAll();
@@ -41,11 +46,29 @@ public class CategoryService {
     }
 
     @Transactional
-    public Category createCategory(CategoryRequestDTO dto) {
+    // ⭐️ Usamos el DTO único
+    public Category createCategoryWithImage(CategoryRequestDTO dto) throws IOException {
+        if (!StringUtils.hasText(dto.getNombre())) {
+            throw new IllegalArgumentException("El nombre es obligatorio");
+        }
+
+        String imageUrl = null;
+        MultipartFile file = dto.getImagenUrlBase(); // ⭐️ Accedemos al archivo con el nombre "imagenUrlBase"
+
+        // 1. Subida a Cloudinary
+        if (file != null && !file.isEmpty()) {
+            Map<String, String> uploadResult = cloudinaryService.uploadFile(file);
+            imageUrl = uploadResult.get("url");
+        }
+
+        // 2. Crear y guardar la entidad
         Category category = new Category();
         category.setNombre(dto.getNombre());
         category.setSlug(dto.getSlug());
         category.setDescripcion(dto.getDescripcion());
+
+        category.setImagenUrlBase(imageUrl);
+
         if (dto.getPadreId() != null) {
             Category padre = categoryRepository.findById(dto.getPadreId())
                     .orElseThrow(() -> new IllegalArgumentException("Categoría padre no encontrada"));
