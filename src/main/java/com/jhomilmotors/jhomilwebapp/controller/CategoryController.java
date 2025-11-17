@@ -11,6 +11,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.jhomilmotors.jhomilwebapp.dto.CategoryRequestDTO;
+
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -19,10 +22,26 @@ import java.util.List;
 public class CategoryController {
     private final CategoryService categoryService;
 
-    @PostMapping
-    public ResponseEntity<CategoryResponseDTO> createCategory(@RequestBody CategoryRequestDTO request) {
-        Category creada = categoryService.createCategory(request);
-        return ResponseEntity.status(201).body(new CategoryResponseDTO(creada.getId(), creada.getNombre()));
+    // ⭐️ REEMPLAZO DEL MÉTODO ANTIGUO: USAMOS EL FLUJO DE SUBIDA DE IMAGEN
+    @PostMapping(consumes = {"multipart/form-data"}) // ⬅️ IMPORTANTE: Consumir datos multipart
+    public ResponseEntity<CategoryResponseDTO> createCategory(
+            @ModelAttribute CategoryRequestDTO request) { // ⬅️ Usamos @ModelAttribute para el archivo
+        try {
+            // ⭐️ LLAMAR AL MÉTODO DEL SERVICIO QUE MANEJA CLOUDINARY
+            Category creada = categoryService.createCategoryWithImage(request);
+
+            // Usamos el constructor de 3 argumentos del DTO para devolver la URL completa
+            return ResponseEntity.status(201).body(
+                    new CategoryResponseDTO(creada.getId(), creada.getNombre(), creada.getImagenUrlBase())
+            );
+        } catch (IOException e) {
+            // Manejar error de subida/archivo
+            e.printStackTrace();
+            return ResponseEntity.status(500).build();
+        } catch (IllegalArgumentException e) {
+            // Manejar errores de validación, etc.
+            return ResponseEntity.status(400).build();
+        }
     }
 
 

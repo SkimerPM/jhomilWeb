@@ -11,8 +11,11 @@ public class ProductDetailsResponseDTO {
     private Long id;
     private String nombre;
     private String descripcion;
+    private String skuBase;
     private BigDecimal precioBase;
+    private Long brandId;
     private String marcaNombre;
+    private Long categoryId;
     private String categoriaNombre;
     private Boolean activo;
 
@@ -48,11 +51,13 @@ public class ProductDetailsResponseDTO {
         private Integer stock;
         private Boolean activo;
         private List<AtributoResponse> atributos; // Color: Rojo, Talla: M, etc.
+        private List<ImagenResponse> imagenes;
     }
 
     @Data
     @Builder
     public static class ImagenResponse {
+        private Long id;
         private String url;
         private Boolean esPrincipal;
         private Integer orden;
