@@ -20,7 +20,7 @@ import java.util.List;
 public class AttributeController {
     private final AttributeService attributeService;
 
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<List<Attribute>> getAllInOrder() {
         return ResponseEntity.ok(attributeService.getAllOrdered());
     }

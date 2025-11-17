@@ -12,6 +12,9 @@ public interface ProductAttributeRepository extends JpaRepository<ProductAttribu
     // Listar todos los atributos de un producto
     Page<ProductAttribute> findByProductId(Long productId, Pageable pageable);
 
+    // 👇 AGREGA ESTE: El método simple que devuelve una Lista sin paginación
+    List<ProductAttribute> findByProductId(Long productId);
+
     // Buscar todos los atributos de un producto por tipo
     Page<ProductAttribute> findByProductIdAndAttribute_Tipo(Long productId, AttributeType tipo, Pageable pageable);
 

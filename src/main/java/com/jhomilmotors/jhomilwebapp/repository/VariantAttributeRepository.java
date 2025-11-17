@@ -18,6 +18,9 @@ public interface VariantAttributeRepository extends JpaRepository<VariantAttribu
      */
     Page<VariantAttribute> findByVarianteId(Long varianteId, Pageable pageable);
 
+    // 👇 AGREGA ESTE: Para el detalle del producto (Trae todos los de esa variante)
+    List<VariantAttribute> findByVarianteId(Long varianteId);
+
     /**
      * Caso de uso: Listar los atributos de una variante filtrando por tipo (ejemplo: solo "compatibilidad" o "spec").
      * Útil para mostrar secciones diferentes en la UI o para paneles admin con filtros avanzados.
