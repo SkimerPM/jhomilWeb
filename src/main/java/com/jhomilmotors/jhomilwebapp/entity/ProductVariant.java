@@ -45,9 +45,9 @@ public class ProductVariant {
     private LocalDateTime fechaActualizacion;
 
     // Relaciones inversas
-    @OneToMany(mappedBy = "variante", cascade = CascadeType.ALL, orphanRemoval = false)
-    private List<VariantAttribute> atributos;
+    @OneToMany(mappedBy = "variante", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<VariantAttribute> atributos = new java.util.ArrayList<>();
 
-    @OneToMany(mappedBy = "variante", cascade = CascadeType.ALL, orphanRemoval = false)
+    @OneToMany(mappedBy = "variante", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Image> imagenes;
 }

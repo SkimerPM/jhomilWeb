@@ -36,17 +36,17 @@ public class ProductCreationRequestDTO {
         private Integer stock;
         private Boolean activo;
         private BigDecimal pesoKg;
-        private List<VarianteAtributoRequest> atributos;
         private List<ImagenRequest> imagenes;
+        private List<AtributoVarianteRequest> atributos;
     }
 
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class VarianteAtributoRequest {
+    public static class AtributoVarianteRequest {
         private Long atributoId;
-        private String valorTexto;
+        private String valor;
         private BigDecimal valorNum;
     }
 

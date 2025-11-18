@@ -30,6 +30,11 @@ public class AttributeController {
         return attributeService.listAll(pageable);
     }
 
+    @GetMapping("/variation")
+    public ResponseEntity<List<Attribute>> getAllVariationAttributes() {
+        // Llama al servicio para obtener solo los que tienen esVariacion = true
+        return ResponseEntity.ok(attributeService.getAllVariationAttributes());
+    }
 
     @GetMapping("/code/{codigo}")
     public ResponseEntity<Attribute> getByCode(@PathVariable String codigo) {

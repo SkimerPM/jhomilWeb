@@ -58,6 +58,10 @@ public class AttributeService {
         attributeRepository.deleteById(id);
     }
 
+    public List<Attribute> getAllVariationAttributes() {
+        return attributeRepository.findByEsVariacionTrue();
+    }
+
     public List<Attribute> getAllOrdered() {
         return attributeRepository.findAllByOrderByOrdenVisualAsc();
     }

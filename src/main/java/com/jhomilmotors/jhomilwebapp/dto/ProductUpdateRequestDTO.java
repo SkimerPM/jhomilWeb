@@ -39,6 +39,16 @@ public class ProductUpdateRequestDTO {
         private BigDecimal pesoKg;
         private Boolean eliminar; // Si true, se elimina la variante.
         private List<ImagenRequest> imagenes;
+        private List<AtributoVarianteRequest> atributos;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AtributoVarianteRequest {
+        private Long atributoId; // El ID del atributo (ej: 1 para Color)
+        private String valor;    // El valor seleccionado (ej: "Rojo", "XL")
     }
 
     @Data

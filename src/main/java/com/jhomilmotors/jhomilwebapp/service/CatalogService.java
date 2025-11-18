@@ -38,6 +38,8 @@ public class CatalogService {
     private BrandRepository brandRepository;
     @Autowired
     private ImageRepository imageRepository;
+    @Autowired
+    private AttributeRepository attributeRepository;
 
     // Inyectar la URL base de tu servidor de medios (la que definiste en properties)
     @Value("${app.base-media-url:}")
@@ -401,6 +403,24 @@ public class CatalogService {
                 variant.setStock(vDto.getStock());
                 variant.setPesoKg(vDto.getPesoKg());
                 variant.setActivo(vDto.getActivo() != null ? vDto.getActivo() : true);
+
+                if (vDto.getAtributos() != null) {
+                    for (ProductCreationRequestDTO.AtributoVarianteRequest attrDto : vDto.getAtributos()) {
+                        // 1. Buscar la definición del atributo (ej: "Color")
+                        Attribute attributeDef = attributeRepository.findById(attrDto.getAtributoId())
+                                .orElseThrow(() -> new IllegalArgumentException("Atributo no encontrado ID: " + attrDto.getAtributoId()));
+
+                        // 2. Crear la relación valor-variante
+                        VariantAttribute va = new VariantAttribute();
+                        va.setVariante(variant); // Relacionar con la variante que estamos creando
+                        va.setAttribute(attributeDef);
+                        va.setValorText(attrDto.getValor()); // Usar .getValor() (NO .getValorTexto())
+
+                        // 3. Añadir a la lista de la variante
+                        variant.getAtributos().add(va);
+                    }
+                }
+
                 ProductVariant savedVariant = productVariantRepository.save(variant);
 
                 if (vDto.getImagenes() != null) {
@@ -505,6 +525,28 @@ public class CatalogService {
                 if (vDto.getStock() != null) variant.setStock(vDto.getStock());
                 if (vDto.getPesoKg() != null) variant.setPesoKg(vDto.getPesoKg());
                 if (vDto.getActivo() != null) variant.setActivo(vDto.getActivo());
+                if (vDto.getAtributos() != null) {
+                    // 1. Limpiamos los atributos anteriores de esta variante.
+                    // Al hacer clear(), Hibernate detecta que faltan y los borra (si orphanRemoval=true en Entity)
+                    variant.getAtributos().clear();
+
+                    for (ProductUpdateRequestDTO.AtributoVarianteRequest attrDto : vDto.getAtributos()) {
+                        // 2. Buscamos la definición del atributo (ej: "Color")
+                        Attribute attributeDef = attributeRepository.findById(attrDto.getAtributoId())
+                                .orElseThrow(() -> new IllegalArgumentException("Atributo no encontrado ID: " + attrDto.getAtributoId()));
+
+                        // 3. Creamos la relación valor-variante
+                        VariantAttribute va = new VariantAttribute();
+                        va.setVariante(variant);
+                        va.setAttribute(attributeDef);
+                        va.setValorText(attrDto.getValor()); // Ej: "Rojo"
+                        // Si tu DTO soportara valores numéricos, iría aquí:
+                        // va.setValorNum(attrDto.getValorNumerico());
+
+                        // 4. Añadimos a la lista de la variante
+                        variant.getAtributos().add(va);
+                    }
+                }
 
                 ProductVariant savedVar = productVariantRepository.save(variant);
                 // Imágenes de la variante

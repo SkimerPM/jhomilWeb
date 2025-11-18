@@ -17,4 +17,5 @@ public interface AttributeRepository extends JpaRepository<Attribute, Long> {
     Page<Attribute> findByEsVariacionTrue(Pageable pageable );
     Page<Attribute> findByNombreContainingIgnoreCase(String nombre, Pageable pageable );
     List<Attribute> findAllByOrderByOrdenVisualAsc();
+    List<Attribute> findByEsVariacionTrue();
 }
