@@ -17,16 +17,40 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/cart")
-//@CrossOrigin(origins = "http://localhost:5173")
+@RequiredArgsConstructor // Usamos @RequiredArgsConstructor para inyección de dependencias
 public class CartController {
+
+    // Inyectados automáticamente gracias a @RequiredArgsConstructor
     private final CartService cartService;
     private final UserService userService;
 
+    // --- Métodos Auxiliares de Lógica de Cart ---
 
-    public CartController(CartService cartService, UserService userService) {
-        this.cartService = cartService;
-        this.userService = userService;
+    /**
+     * Helper para obtener el carrito basándose en la autenticación o sessionId.
+     */
+    private CartDTO getCartFromAuthOrSession(String sessionId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        // Si está autenticado
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+            Long usuarioId = userService.getUserIdFromAuthentication(auth);
+            return cartService.getOrCreateCart(usuarioId);
+        }
+        // Si NO está autenticado
+        else if (sessionId != null && !sessionId.isEmpty()) {
+            return cartService.getOrCreateAnonCart(sessionId);
+        }
+        else {
+            throw new IllegalArgumentException("Debes proporcionar sessionId si no estás autenticado.");
+        }
     }
+
+
+    // -----------------------------------------------------------------
+    // 📦 GESTIÓN BÁSICA DEL CARRITO
+    // -----------------------------------------------------------------
+
     @PostMapping("/sync")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<CartDTO> syncCart(@RequestBody SyncCartRequestDTO request,
@@ -38,26 +62,11 @@ public class CartController {
 
     /**
      * Obtiene el carrito (autenticado) o anónimo (no autenticado)
-     * GET /api/v1/cart?sessionId=abc123 (si no está autenticado)
+     * GET /api/v1/cart?sessionId=abc123
      */
     @GetMapping
     public ResponseEntity<CartDTO> getCart(@RequestParam(required = false) String sessionId) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        CartDTO cart;
-
-        // ✅ Si está autenticado → usar usuarioId
-        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
-            Long usuarioId = userService.getUserIdFromAuthentication(auth);
-            cart = cartService.getOrCreateCart(usuarioId);
-        }
-        // ✅ Si NO está autenticado → usar sessionId
-        else if (sessionId != null && !sessionId.isEmpty()) {
-            cart = cartService.getOrCreateAnonCart(sessionId);
-        }
-        else {
-            throw new IllegalArgumentException("Debes proporcionar sessionId si no estás autenticado");
-        }
-
+        CartDTO cart = getCartFromAuthOrSession(sessionId);
         return ResponseEntity.ok(cart);
     }
 
@@ -71,30 +80,20 @@ public class CartController {
         return ResponseEntity.ok(cart);
     }
 
+    // -----------------------------------------------------------------
+    // 🛒 GESTIÓN DE ÍTEMS
+    // -----------------------------------------------------------------
+
     /**
-     * Agrega un item al carrito (CUALQUIER USUARIO - autenticado o no)
-     * POST /api/v1/cart/items?sessionId=abc123 (requerido si no autenticado)
+     * Agrega un item al carrito
+     * POST /api/v1/cart/items?sessionId=abc123
      */
     @PostMapping("/items")
     public ResponseEntity<CartDTO> addItem(
             @Valid @RequestBody CreateCartItemRequestDTO request,
             @RequestParam(required = false) String sessionId) {
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        CartDTO cart;
-
-        // ✅ Si está autenticado → usar usuarioId
-        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
-            Long usuarioId = userService.getUserIdFromAuthentication(auth);
-            cart = cartService.getOrCreateCart(usuarioId);
-        }
-        // ✅ Si NO está autenticado → usar sessionId
-        else if (sessionId != null && !sessionId.isEmpty()) {
-            cart = cartService.getOrCreateAnonCart(sessionId);
-        }
-        else {
-            throw new IllegalArgumentException("Debes proporcionar sessionId si no estás autenticado");
-        }
+        CartDTO cart = getCartFromAuthOrSession(sessionId);
 
         CartDTO updatedCart = cartService.addItemToCart(cart.getId(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(updatedCart);
@@ -110,17 +109,7 @@ public class CartController {
             @Valid @RequestBody UpdateCartItemRequestDTO request,
             @RequestParam(required = false) String sessionId) {
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        CartDTO cart;
-
-        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
-            Long usuarioId = userService.getUserIdFromAuthentication(auth);
-            cart = cartService.getOrCreateCart(usuarioId);
-        } else if (sessionId != null && !sessionId.isEmpty()) {
-            cart = cartService.getOrCreateAnonCart(sessionId);
-        } else {
-            throw new IllegalArgumentException("Debes proporcionar sessionId si no estás autenticado");
-        }
+        CartDTO cart = getCartFromAuthOrSession(sessionId);
 
         CartDTO updatedCart = cartService.updateCartItem(cart.getId(), itemId, request);
         return ResponseEntity.ok(updatedCart);
@@ -135,17 +124,7 @@ public class CartController {
             @PathVariable Long itemId,
             @RequestParam(required = false) String sessionId) {
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        CartDTO cart;
-
-        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
-            Long usuarioId = userService.getUserIdFromAuthentication(auth);
-            cart = cartService.getOrCreateCart(usuarioId);
-        } else if (sessionId != null && !sessionId.isEmpty()) {
-            cart = cartService.getOrCreateAnonCart(sessionId);
-        } else {
-            throw new IllegalArgumentException("Debes proporcionar sessionId si no estás autenticado");
-        }
+        CartDTO cart = getCartFromAuthOrSession(sessionId);
 
         CartDTO updatedCart = cartService.removeItemFromCart(cart.getId(), itemId);
         return ResponseEntity.ok(updatedCart);
@@ -157,20 +136,63 @@ public class CartController {
      */
     @DeleteMapping
     public ResponseEntity<Void> clearCart(@RequestParam(required = false) String sessionId) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        CartDTO cart;
-
-        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
-            Long usuarioId = userService.getUserIdFromAuthentication(auth);
-            cart = cartService.getOrCreateCart(usuarioId);
-        } else if (sessionId != null && !sessionId.isEmpty()) {
-            cart = cartService.getOrCreateAnonCart(sessionId);
-        } else {
-            throw new IllegalArgumentException("Debes proporcionar sessionId si no estás autenticado");
-        }
+        CartDTO cart = getCartFromAuthOrSession(sessionId);
 
         cartService.clearCart(cart.getId());
         return ResponseEntity.noContent().build();
     }
 
+
+    // -----------------------------------------------------------------
+    // 🏷️ NUEVOS ENDPOINTS PARA CUPONES
+    // -----------------------------------------------------------------
+
+    /**
+     * Aplica un cupón (promoción de carrito) al carrito.
+     * El carrito se identifica por autenticación o sessionId.
+     * PUT /api/v1/cart/coupon?sessionId=abc123
+     * BODY: { "codigo": "TEST50" }
+     */
+    @PutMapping("/coupon")
+    public ResponseEntity<CartDTO> applyCoupon(@RequestBody CouponRequest request,
+                                               @RequestParam(required = false) String sessionId) {
+
+        CartDTO cart = getCartFromAuthOrSession(sessionId);
+
+        CartDTO cartDTO = cartService.applyCoupon(cart.getId(), request.getCodigo());
+        return ResponseEntity.ok(cartDTO);
+    }
+
+    /**
+     * Remueve el cupón aplicado.
+     * DELETE /api/v1/cart/coupon?sessionId=abc123
+     */
+    @DeleteMapping("/coupon")
+    public ResponseEntity<CartDTO> removeCoupon(@RequestParam(required = false) String sessionId) {
+
+        CartDTO cart = getCartFromAuthOrSession(sessionId);
+
+        CartDTO cartDTO = cartService.removeCoupon(cart.getId());
+        return ResponseEntity.ok(cartDTO);
+    }
+
+    // -----------------------------------------------------------------
+    // DTO auxiliar para la petición de cupón
+    // -----------------------------------------------------------------
+
+    /**
+     * DTO interno simple para recibir el código del cupón en el cuerpo de la petición.
+     */
+    private static class CouponRequest {
+        private String codigo;
+
+        // Getters and Setters for Jackson deserialization
+        public String getCodigo() {
+            return codigo;
+        }
+
+        public void setCodigo(String codigo) {
+            this.codigo = codigo;
+        }
+    }
 }
