@@ -119,6 +119,17 @@ public class CatalogService {
                                                     .build())
                                             .collect(Collectors.toList());
 
+                            // IMÁGENES DE LA VARIANTE
+                            List<ProductDetailsResponseDTO.ImagenResponse> imagenesVar =
+                                    imageRepository.findByVarianteIdOrderByOrdenAsc(variante.getId()).stream()
+                                            .map(img -> ProductDetailsResponseDTO.ImagenResponse.builder()
+                                                    .id(img.getId())
+                                                    .url(img.getUrl())
+                                                    .esPrincipal(img.getEsPrincipal())
+                                                    .orden(img.getOrden())
+                                                    .build())
+                                            .collect(Collectors.toList());
+
                             return ProductDetailsResponseDTO.VarianteResponse.builder()
                                     .id(variante.getId())
                                     .sku(variante.getSku())
@@ -126,6 +137,7 @@ public class CatalogService {
                                     .stock(variante.getStock())
                                     .activo(variante.getActivo())
                                     .atributos(atributosVar)
+                                    .imagenes(imagenesVar)
                                     .build();
                         })
                         .collect(Collectors.toList());

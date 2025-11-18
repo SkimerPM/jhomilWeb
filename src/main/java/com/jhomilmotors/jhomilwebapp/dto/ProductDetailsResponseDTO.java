@@ -51,6 +51,7 @@ public class ProductDetailsResponseDTO {
         private Integer stock;
         private Boolean activo;
         private List<AtributoResponse> atributos; // Color: Rojo, Talla: M, etc.
+        private List<ImagenResponse> imagenes;
     }
 
     @Data

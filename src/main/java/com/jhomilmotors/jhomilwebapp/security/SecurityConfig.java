@@ -90,6 +90,8 @@ public class SecurityConfig {
                                 .requestMatchers(HttpMethod.GET, "/api/users").hasAuthority("ROLE_ADMIN") //mod
                                 .requestMatchers(HttpMethod.GET, "/api/users/{id}").hasAuthority("ROLE_ADMIN") //mod
                                 .requestMatchers(HttpMethod.POST, "/api/v1/catalog/create-full-product").permitAll()
+                                .requestMatchers("/api/admin/product-attributes").hasAuthority("ROLE_ADMIN")
+                                .requestMatchers("/api/admin/variant-attributes").hasAuthority("ROLE_ADMIN")
 
 
                                 // Todo lo demás requiere autenticación
