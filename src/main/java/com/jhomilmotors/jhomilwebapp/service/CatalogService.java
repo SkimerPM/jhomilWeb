@@ -92,7 +92,7 @@ public class CatalogService {
 
         // ATRIBUTOS DEL PRODUCTO
         List<ProductDetailsResponseDTO.AtributoResponse> atributos =
-                productAttributeRepository.findByProductId(product.getId()).stream()
+                product.getAtributos().stream()
                         .map(pa -> ProductDetailsResponseDTO.AtributoResponse.builder()
                                 .id(pa.getAttribute().getId())
                                 .nombre(pa.getAttribute().getNombre())
@@ -372,6 +372,24 @@ public class CatalogService {
         product.setBrand(brand);
         Product savedProduct = productRepository.save(product);
 
+        // LÓGICA NUEVA: ATRIBUTOS DEL PRODUCTO
+        if (request.getAtributos() != null) {
+            for (ProductCreationRequestDTO.AtributoVarianteRequest attrDto : request.getAtributos()) {
+                Attribute attributeDef = attributeRepository.findById(attrDto.getAtributoId())
+                        .orElseThrow(() -> new IllegalArgumentException("Atributo no encontrado ID: " + attrDto.getAtributoId()));
+
+                ProductAttribute pa = new ProductAttribute();
+                pa.setProduct(savedProduct);
+                pa.setAttribute(attributeDef);
+                pa.setValorText(attrDto.getValor());
+                // pa.setValorNum(...) si usas números
+
+                // Opción A (Añadir a lista y guardar producto de nuevo al final):
+                savedProduct.getAtributos().add(pa);
+            }
+            productRepository.save(savedProduct); // Actualizar con atributos
+        }
+
         // 3. Guardar imágenes del producto principal
         for (ProductCreationRequestDTO.ImagenRequest imgDto : request.getImagenes()) {
             Image img = new Image();
@@ -464,6 +482,25 @@ public class CatalogService {
             Brand brand = brandRepository.findById(request.getBrandId())
                     .orElseThrow(() -> new IllegalArgumentException("Marca no encontrada"));
             product.setBrand(brand);
+        }
+
+        // LÓGICA NUEVA: ACTUALIZAR ATRIBUTOS DEL PRODUCTO
+        if (request.getAtributos() != null) {
+            product.getAtributos().clear();
+            // Forzar flush para evitar unique constraint issues si los hay
+            productRepository.saveAndFlush(product);
+
+            for (ProductUpdateRequestDTO.AtributoVarianteRequest attrDto : request.getAtributos()) {
+                Attribute attributeDef = attributeRepository.findById(attrDto.getAtributoId())
+                        .orElseThrow(() -> new IllegalArgumentException("Atributo no encontrado ID: " + attrDto.getAtributoId()));
+
+                ProductAttribute pa = new ProductAttribute();
+                pa.setProduct(product);
+                pa.setAttribute(attributeDef);
+                pa.setValorText(attrDto.getValor());
+
+                product.getAtributos().add(pa);
+            }
         }
 
         // Imágenes

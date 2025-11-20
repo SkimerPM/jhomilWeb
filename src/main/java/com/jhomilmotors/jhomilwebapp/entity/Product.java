@@ -61,4 +61,7 @@ public class Product {
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = false)
     private List<Image> imagenes;
 
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true) // orphanRemoval=true es CLAVE
+    private List<ProductAttribute> atributos = new java.util.ArrayList<>();
+
 }
