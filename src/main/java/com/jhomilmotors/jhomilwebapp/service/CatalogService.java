@@ -529,6 +529,7 @@ public class CatalogService {
                     // 1. Limpiamos los atributos anteriores de esta variante.
                     // Al hacer clear(), Hibernate detecta que faltan y los borra (si orphanRemoval=true en Entity)
                     variant.getAtributos().clear();
+                    productVariantRepository.saveAndFlush(variant); //Borrado antes de update
 
                     for (ProductUpdateRequestDTO.AtributoVarianteRequest attrDto : vDto.getAtributos()) {
                         // 2. Buscamos la definición del atributo (ej: "Color")
