@@ -24,6 +24,7 @@ public class ProductCreationRequestDTO {
     private Boolean activo;
     private List<VarianteRequest> variantes;      // Variantes del producto
     private List<ImagenRequest> imagenes;         // Imágenes principales del producto
+    private List<AtributoVarianteRequest> atributos;
 
     @Data
     @Builder

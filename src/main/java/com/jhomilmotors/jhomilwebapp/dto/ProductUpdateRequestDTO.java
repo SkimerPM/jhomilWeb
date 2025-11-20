@@ -25,6 +25,7 @@ public class ProductUpdateRequestDTO {
     private Boolean activo;
     private List<ImagenRequest> imagenes; // Lista completa. Borra existenes y crea nuevas.
     private List<VarianteUpdateRequest> variantes;
+    private List<AtributoVarianteRequest> atributos;
 
     @Data
     @Builder
