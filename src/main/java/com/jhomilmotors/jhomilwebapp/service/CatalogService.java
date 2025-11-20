@@ -94,6 +94,7 @@ public class CatalogService {
         List<ProductDetailsResponseDTO.AtributoResponse> atributos =
                 productAttributeRepository.findByProductId(product.getId()).stream()
                         .map(pa -> ProductDetailsResponseDTO.AtributoResponse.builder()
+                                .id(pa.getAttribute().getId())
                                 .nombre(pa.getAttribute().getNombre())
                                 .codigo(pa.getAttribute().getCodigo())
                                 .tipo(String.valueOf(pa.getAttribute().getTipo()))
@@ -112,6 +113,7 @@ public class CatalogService {
                             List<ProductDetailsResponseDTO.AtributoResponse> atributosVar =
                                     variantAttributeRepository.findByVarianteId(variante.getId()).stream()
                                             .map(va -> ProductDetailsResponseDTO.AtributoResponse.builder()
+                                                    .id(va.getAttribute().getId())
                                                     .nombre(va.getAttribute().getNombre())
                                                     .codigo(va.getAttribute().getCodigo())
                                                     .tipo(String.valueOf(va.getAttribute().getTipo()))
