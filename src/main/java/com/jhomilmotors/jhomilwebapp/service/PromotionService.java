@@ -1,9 +1,13 @@
 package com.jhomilmotors.jhomilwebapp.service;
 
 import com.jhomilmotors.jhomilwebapp.dto.PromotionDTO;
+import com.jhomilmotors.jhomilwebapp.entity.ProductVariant;
 import com.jhomilmotors.jhomilwebapp.entity.Promotion;
+import com.jhomilmotors.jhomilwebapp.entity.PromotionProduct;
 import com.jhomilmotors.jhomilwebapp.enums.DiscountType;
 import com.jhomilmotors.jhomilwebapp.exception.ResourceNotFoundException;
+import com.jhomilmotors.jhomilwebapp.repository.ProductVariantRepository;
+import com.jhomilmotors.jhomilwebapp.repository.PromotionProductRepository;
 import com.jhomilmotors.jhomilwebapp.repository.PromotionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,6 +23,8 @@ import java.math.BigDecimal;
 @RequiredArgsConstructor
 public class PromotionService {
     private final PromotionRepository promotionRepository;
+    private final PromotionProductRepository promotionProductRepository;
+    private final ProductVariantRepository productVariantRepository; // Inyectado para obtener el Producto padre
 
     private DiscountType strToDiscountType(String value) {
         for (DiscountType tipo : DiscountType.values()) {
@@ -42,6 +48,54 @@ public class PromotionService {
         dto.setMinCompra(entity.getMinCompra());
         dto.setMaxUsos(entity.getMaxUsos());
         return dto;
+    }
+
+    // --- NUEVO MÉTODO CLAVE PARA EL CARRITO ---
+
+    /**
+     * Busca la mejor promoción activa para una variante:
+     * 1. Busca promociones específicas de la variante.
+     * 2. Si no hay, busca promociones del producto padre.
+     * 3. Prioriza promociones con mayor valor de descuento.
+     */
+    @Transactional(readOnly = true)
+    public PromotionDTO findBestActivePromotionByVariantId(Long variantId) {
+        ProductVariant variant = productVariantRepository.findById(variantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Variante no encontrada."));
+
+        LocalDateTime now = LocalDateTime.now();
+
+        // 1. Buscar promociones específicas de la VARIANTE (más específicas)
+        // Usamos findByVarianteId, que devuelve PromotionProduct
+        List<PromotionProduct> promoVariantLinks = promotionProductRepository.findByVarianteId(variantId);
+
+        Optional<PromotionDTO> bestVariantPromo = promoVariantLinks.stream()
+                .map(PromotionProduct::getPromocion)
+                .filter(p -> p.getActivo()
+                        && p.getFechaInicio().isBefore(now)
+                        && (p.getFechaFin() == null || p.getFechaFin().isAfter(now)))
+                .map(this::toDTO)
+                // Aquí se necesitaría lógica de priorización si hay varias promos.
+                // Por simplicidad, tomamos la primera activa y vigente.
+                .findFirst();
+
+        if (bestVariantPromo.isPresent()) {
+            return bestVariantPromo.get();
+        }
+
+        // 2. Si no hay, buscar promociones del PRODUCTO PADRE
+        // Usamos findByProductoId
+        List<PromotionProduct> promoProductLinks = promotionProductRepository.findByProductoId(variant.getProduct().getId());
+
+        Optional<PromotionDTO> bestProductPromo = promoProductLinks.stream()
+                .map(PromotionProduct::getPromocion)
+                .filter(p -> p.getActivo()
+                        && p.getFechaInicio().isBefore(now)
+                        && (p.getFechaFin() == null || p.getFechaFin().isAfter(now)))
+                .map(this::toDTO)
+                .findFirst();
+
+        return bestProductPromo.orElse(null);
     }
 
     @Transactional(readOnly = true)

@@ -45,6 +45,7 @@ public class CatalogService {
     @Value("${app.base-media-url:}")
     private String baseMediaUrl;
 
+
     public List<ProductCatalogResponse> findAllCatalogProducts() {
         return productRepository.findAllEntities().stream()
                 .map(this::mapProductToCatalogResponse)
