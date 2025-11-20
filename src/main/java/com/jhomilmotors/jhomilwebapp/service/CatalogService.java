@@ -322,6 +322,14 @@ public class CatalogService {
         return productRepository.findByCategoryIdAndActivoTrue(categoryId, pageable);
     }
 
+    public Page<ProductCatalogResponse> findProductCatalogByCategory(Long categoryId, Pageable pageable) {
+        // 1. Buscamos las Entidades (que tienen el problema del bucle)
+        Page<Product> products = productRepository.findByCategoryIdAndActivoTrue(categoryId, pageable);
+
+        // 2. Las convertimos a DTOs aquí mismo (Rompiendo el ciclo)
+        return products.map(this::mapProductToCatalogResponse);
+    }
+
     public Page<Product> findByBrandAndActivoTrue(Long brandId, Pageable pageable) {
         return productRepository.findByBrand_IdAndActivoTrue(brandId, pageable);
     }

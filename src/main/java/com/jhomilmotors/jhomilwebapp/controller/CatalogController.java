@@ -355,11 +355,12 @@ public class CatalogController {
     }
 
     /**
-     * Obtiene productos activos de una categoría específica, paginado.
+     * Obtiene productos activos de una categoría específica, paginado. (NO USAR AUNNN)
      */
     @GetMapping("/category-activo/{categoryId}")
-    public ResponseEntity<Page<Product>> activosPorCategoria(@PathVariable Long categoryId, Pageable pageable) {
-        return ResponseEntity.ok(catalogService.findByCategoryAndActivoTrue(categoryId, pageable));
+    public ResponseEntity<Page<ProductCatalogResponse>> activosPorCategoria(@PathVariable Long categoryId, Pageable pageable) {
+        Page<ProductCatalogResponse> page = catalogService.findProductCatalogByCategory(categoryId, pageable);
+        return ResponseEntity.ok(page);
     }
 
     /**
