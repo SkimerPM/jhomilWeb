@@ -43,4 +43,29 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT p FROM Product p WHERE p.nombre ILIKE %:nombre% OR p.descripcion ILIKE %:nombre%")
     Page<Product> searchByNombreOrDescripcion(@Param("nombre") String nombre, Pageable pageable);
+
+
+    /**
+     * Consulta que resuelve el problema de precios en 0 y stocks vacíos.
+     * 1. Precio: Si hay variantes, toma el menor. Si no, toma el del padre.
+     * 2. Stock: Suma el stock de todas las variantes activas.
+     */
+    @Query("SELECT new com.jhomilmotors.jhomilwebapp.dto.ProductCatalogResponse(" +
+            "  p.id, " +
+            "  p.nombre, " +
+            "  p.descripcion, " +
+            // Precio Inteligente:
+            "  COALESCE((SELECT min(v.precio) FROM ProductVariant v WHERE v.product = p AND v.activo = true), p.precioBase), " +
+            // Stock Real (Suma):
+            "  COALESCE((SELECT CAST(SUM(v.stock) AS long) FROM ProductVariant v WHERE v.product = p AND v.activo = true), 0L), " +
+            // Imagen Principal:
+            "  (SELECT i.url FROM Image i WHERE i.product = p AND i.esPrincipal = true), " +
+            "  p.category.id, " +
+            "  p.category.nombre, " +
+            "  p.brand.id, " +
+            "  p.brand.nombre " +
+            ") " +
+            "FROM Product p " +
+            "WHERE p.activo = true")
+    List<ProductCatalogResponse> findAllCatalogProductsOptimized();
 }

@@ -183,6 +183,12 @@ public class CatalogController {
         }
     }
 
+    @PostMapping("/product/simple")
+    public ResponseEntity<ProductDetailsResponseDTO> createSimpleProduct(@RequestBody SimpleProductRequestDTO request) {
+        ProductDetailsResponseDTO response = catalogService.createSimpleProduct(request);
+        return ResponseEntity.ok(response);
+    }
+
     /**
      * Actualiza los datos de un producto y sus variantes.
      *
