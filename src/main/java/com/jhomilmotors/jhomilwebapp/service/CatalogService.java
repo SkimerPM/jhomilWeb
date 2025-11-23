@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -45,11 +47,15 @@ public class CatalogService {
     @Value("${app.base-media-url:}")
     private String baseMediaUrl;
 
+//         METODO ANTIGUO LENTO
+//    public List<ProductCatalogResponse> findAllCatalogProducts() {
+//        return productRepository.findAllEntities().stream()
+//                .map(this::mapProductToCatalogResponse)
+//                .collect(Collectors.toList());
+//    }
 
     public List<ProductCatalogResponse> findAllCatalogProducts() {
-        return productRepository.findAllEntities().stream()
-                .map(this::mapProductToCatalogResponse)
-                .collect(Collectors.toList());
+        return productRepository.findAllCatalogProductsOptimized();
     }
 
     public Page<AdminProductListDTO> getAllAdminProductsPaged(Pageable pageable) {
@@ -684,7 +690,127 @@ public class CatalogService {
         return imageRepository.save(img);
     }
 
+    /**
+     * Crea un producto simple y devuelve el DTO completo estándar.
+     */
+    @Transactional
+    public ProductDetailsResponseDTO createSimpleProduct(SimpleProductRequestDTO request) {
+        // 1. Validar SKU Base
+        if (productRepository.findBySkuBase(request.getSku()).isPresent()) {
+            throw new IllegalArgumentException("Ya existe un producto con ese SKU Base: " + request.getSku());
+        }
 
+        // 2. CREAR PRODUCTO PADRE
+        Product product = new Product();
+        product.setNombre(request.getNombre());
+        product.setDescripcion(request.getDescripcion());
+        product.setSkuBase(request.getSku());
+        product.setPrecioBase(request.getPrecio());
+        product.setPesoKg(request.getPesoKg());
+        product.setVolumenM3(request.getVolumenM3());
+        product.setActivo(true);
+
+        // Relaciones
+        if(request.getCategoryId() != null) {
+            product.setCategory(categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada")));
+        }
+        if(request.getBrandId() != null) {
+            product.setBrand(brandRepository.findById(request.getBrandId())
+                    .orElseThrow(() -> new IllegalArgumentException("Marca no encontrada")));
+        }
+
+        Product savedProduct = productRepository.save(product);
+
+        // 3. GUARDAR ATRIBUTOS DEL PRODUCTO
+        if (request.getAtributos() != null && !request.getAtributos().isEmpty()) {
+            List<ProductAttribute> atributosParaGuardar = new ArrayList<>();
+            for (SimpleProductRequestDTO.SimpleAtributoRequest attrReq : request.getAtributos()) {
+                Attribute attributeDef = attributeRepository.findById(attrReq.getAtributoId())
+                        .orElseThrow(() -> new IllegalArgumentException("Atributo no encontrado ID: " + attrReq.getAtributoId()));
+
+                ProductAttribute pa = new ProductAttribute();
+                pa.setProduct(savedProduct);
+                pa.setAttribute(attributeDef);
+                pa.setValorText(attrReq.getValor());
+                atributosParaGuardar.add(pa);
+            }
+            savedProduct.setAtributos(atributosParaGuardar);
+            productRepository.save(savedProduct);
+        }
+
+        // 4. CREAR VARIANTE ÚNICA AUTOMÁTICA (Manejo de Stock)
+        ProductVariant defaultVariant = new ProductVariant();
+        defaultVariant.setProduct(savedProduct);
+        defaultVariant.setSku(savedProduct.getSkuBase() + "-STD");
+        defaultVariant.setPrecio(request.getPrecio());
+        defaultVariant.setStock(request.getStock() != null ? request.getStock() : 0);
+        defaultVariant.setPesoKg(request.getPesoKg());
+        defaultVariant.setActivo(true);
+
+        ProductVariant savedVariant = productVariantRepository.save(defaultVariant);
+
+        // 5. GUARDAR IMÁGENES
+        List<Image> savedImages = new ArrayList<>();
+        if (request.getImagenes() != null && !request.getImagenes().isEmpty()) {
+            List<Image> imagesToSave = new ArrayList<>();
+            for (SimpleProductRequestDTO.SimpleImagenRequest imgReq : request.getImagenes()) {
+                Image img = new Image();
+                img.setProduct(savedProduct);
+                img.setUrl(imgReq.getUrl());
+                img.setEsPrincipal(imgReq.getEsPrincipal() != null ? imgReq.getEsPrincipal() : false);
+                imagesToSave.add(img);
+            }
+            savedImages = imageRepository.saveAll(imagesToSave);
+        }
+
+        // --- CONSTRUCCIÓN DEL DTO DE RESPUESTA (ProductDetailsResponseDTO) ---
+        return ProductDetailsResponseDTO.builder()
+                .id(savedProduct.getId())
+                .nombre(savedProduct.getNombre())
+                .descripcion(savedProduct.getDescripcion())
+                .skuBase(savedProduct.getSkuBase())
+                .precioBase(savedProduct.getPrecioBase())
+                .activo(savedProduct.getActivo())
+                .categoryId(savedProduct.getCategory() != null ? savedProduct.getCategory().getId() : null)
+                .categoriaNombre(savedProduct.getCategory() != null ? savedProduct.getCategory().getNombre() : null)
+                .brandId(savedProduct.getBrand() != null ? savedProduct.getBrand().getId() : null)
+                .marcaNombre(savedProduct.getBrand() != null ? savedProduct.getBrand().getNombre() : null)
+
+                // Mapear Atributos
+                .atributos(savedProduct.getAtributos() != null ? savedProduct.getAtributos().stream()
+                        .map(attr -> ProductDetailsResponseDTO.AtributoResponse.builder()
+                                .id(attr.getId())
+                                .nombre(attr.getAttribute().getNombre())
+                                .valorTexto(attr.getValorText())
+                                .build())
+                        .collect(Collectors.toList()) : Collections.emptyList())
+
+                // Mapear Imágenes
+                .imagenes(savedImages.stream()
+                        .map(img -> ProductDetailsResponseDTO.ImagenResponse.builder()
+                                .id(img.getId())
+                                .url(img.getUrl())
+                                .esPrincipal(img.getEsPrincipal())
+                                .orden(img.getOrden())
+                                .build())
+                        .collect(Collectors.toList()))
+
+                // IMPORTANTE: Mapear la variante única a la lista de variantes
+                .variantes(Collections.singletonList(
+                        ProductDetailsResponseDTO.VarianteResponse.builder()
+                                .id(savedVariant.getId())
+                                .sku(savedVariant.getSku())
+                                .precio(savedVariant.getPrecio())
+                                .stock(savedVariant.getStock()) // Aquí va el stock real
+                                .activo(savedVariant.getActivo())
+                                .imagenes(Collections.emptyList()) // Variante simple no suele tener fotos propias si ya las tiene el padre
+                                .atributos(Collections.emptyList())
+                                .build()
+                ))
+                .promociones(Collections.emptyList())
+                .build();
+    }
 
 
 }
