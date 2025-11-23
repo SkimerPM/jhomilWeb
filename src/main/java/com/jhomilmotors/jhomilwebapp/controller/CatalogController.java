@@ -355,7 +355,7 @@ public class CatalogController {
     }
 
     /**
-     * Obtiene productos activos de una categoría específica, paginado. (NO USAR AUNNN)
+     * Obtiene productos activos de una categoría específica, paginado.
      */
     @GetMapping("/category-activo/{categoryId}")
     public ResponseEntity<Page<ProductCatalogResponse>> activosPorCategoria(@PathVariable Long categoryId, Pageable pageable) {
