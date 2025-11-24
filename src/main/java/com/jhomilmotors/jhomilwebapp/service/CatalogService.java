@@ -209,13 +209,13 @@ public class CatalogService {
 
     public List<BrandResponseDTO> findAllBrands() {
         return brandRepository.findAll().stream()
-                .map(m -> new BrandResponseDTO(m.getId(), m.getNombre()))
+                .map(m -> new BrandResponseDTO(m.getId(), m.getNombre(), m.getImagenLogoURL()))
                 .collect(Collectors.toList());
     }
 
     public Page<BrandResponseDTO> findBrands(String nombre, Pageable pageable) {
         Page<Brand> marcas = brandRepository.findByNombreContainingIgnoreCase(nombre, pageable);
-        return marcas.map(m -> new BrandResponseDTO(m.getId(), m.getNombre()));
+        return marcas.map(m -> new BrandResponseDTO(m.getId(), m.getNombre(), m.getImagenLogoURL()));
     }
 
     public BrandResponseDTO createBrand(BrandRequestDTO dto) {
@@ -227,8 +227,11 @@ public class CatalogService {
         }
         Brand brand = new Brand();
         brand.setNombre(dto.getNombre().trim());
+        if(dto.getImagenLogoURL() != null && !dto.getImagenLogoURL().trim().isEmpty()) {
+            brand.setImagenLogoURL(dto.getImagenLogoURL().trim());
+        }
         Brand saved = brandRepository.save(brand);
-        return new BrandResponseDTO(saved.getId(), saved.getNombre());
+        return new BrandResponseDTO(saved.getId(), saved.getNombre(), saved.getImagenLogoURL());
     }
 
     public BrandResponseDTO updateBrand(Long id, BrandRequestDTO dto) {
@@ -246,10 +249,15 @@ public class CatalogService {
             throw new IllegalArgumentException("El nombre de la marca ya existe");
         }
 
+        String logoURL = dto.getImagenLogoURL();
+        if (logoURL != null && !logoURL.trim().isEmpty()) {
+            brand.setImagenLogoURL(logoURL.trim());
+        } else {
+            brand.setImagenLogoURL(null);
+        }
         brand.setNombre(dto.getNombre().trim());
         Brand saved = brandRepository.save(brand);
-        return new BrandResponseDTO(saved.getId(), saved.getNombre());
-
+        return new BrandResponseDTO(saved.getId(), saved.getNombre(), saved.getImagenLogoURL());
     }
 
     // CUIDADO: Borrado NO lógico.

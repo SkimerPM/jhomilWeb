@@ -239,7 +239,10 @@ public class CatalogController {
     }
 
 
-
+    @GetMapping("/brands")
+    public ResponseEntity<List<BrandResponseDTO>> getBrandsCustomer() {
+        return ResponseEntity.ok(catalogService.findAllBrands());
+    }
 
     // soporta tanto listar todo, como listar por nombre.
     // /admin/brands?page=0&size=10"

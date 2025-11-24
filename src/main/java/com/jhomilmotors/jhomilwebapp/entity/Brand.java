@@ -13,5 +13,5 @@ public class Brand {
 
     private String nombre;
     @Column(name = "imagen_logo", nullable = true)
-    private String imagen_logo;
+    private String imagenLogoURL;
 }
