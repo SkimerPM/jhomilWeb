@@ -48,7 +48,7 @@ public class SecurityConfig {
                                 .requestMatchers(HttpMethod.DELETE, "/api/delete-image/**").authenticated()
 
 
-
+                                .requestMatchers("/api/v1/cart/**").permitAll()
                                 // Permitir GET a usuarios por email (opcional si quieres que sea público)
 //                        .requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
                                 // Promociones: permitir GET a todos, proteger POST/PUT/DELETE solo para ADMIN

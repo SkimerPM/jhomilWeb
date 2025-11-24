@@ -14,9 +14,26 @@ public class PromotionDTO {
     private Boolean activo;
     private BigDecimal minCompra;
     private Integer maxUsos;
-
+    private Long varianteGratisId;
+    private Integer cantidadGratis;
 
     public PromotionDTO() {
+    }
+
+    public Long getVarianteGratisId() {
+        return varianteGratisId;
+    }
+
+    public void setVarianteGratisId(Long varianteGratisId) {
+        this.varianteGratisId = varianteGratisId;
+    }
+
+    public Integer getCantidadGratis() {
+        return cantidadGratis;
+    }
+
+    public void setCantidadGratis(Integer cantidadGratis) {
+        this.cantidadGratis = cantidadGratis;
     }
 
     public Long getId() {
