@@ -1,10 +1,8 @@
 package com.jhomilmotors.jhomilwebapp.service;
 
 import com.jhomilmotors.jhomilwebapp.dto.*;
-
 import com.jhomilmotors.jhomilwebapp.entity.*;
 import com.jhomilmotors.jhomilwebapp.exception.ResourceNotFoundException;
-
 import com.jhomilmotors.jhomilwebapp.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -20,34 +19,25 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class CartService {
+
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
     private final ProductVariantRepository productVariantRepository;
-    private final PromotionRepository promotionRepository;
+    private final PromotionRepository promotionRepository; // (Opcional si usas el service)
     private final UserRepository userRepository;
     private final PromotionService promotionService;
 
-
-    // 🚨 VARIABLES TEMPORALES PARA EL DESCUENTO DE CUPÓN (SIN MODIFICAR MODELO) 🚨
-    private BigDecimal lastAppliedCouponDiscount = BigDecimal.ZERO;
-    private PromotionDTO lastAppliedCoupon = null;
-
+    // 🚨 CORRECCIÓN: ELIMINADAS LAS VARIABLES GLOBALES (Singleton Issue) 🚨
+    // El estado ahora vive en la entidad Cart (base de datos).
 
     // -------------------------------------------------------------------------
     // 🧩 LÓGICA DE DESCUENTOS DE PRODUCTO (APLICADA AL SNAPSHOT)
     // -------------------------------------------------------------------------
 
-    /**
-     * Consulta y aplica la mejor promoción de producto vigente para una variante o su producto.
-     * Devuelve el precio unitario final de venta con descuento (si aplica).
-     * @param item El CartItem que se está evaluando/creando.
-     * @return El precio unitario final (precio unitario - descuento).
-     */
-    private BigDecimal calculateItemDiscount(CartItem item) {
-        ProductVariant variant = item.getVariante();
+    private BigDecimal calculateItemDiscount(ProductVariant variant, int cantidad) {
         BigDecimal precioBase = variant.getPrecio();
 
-        // Usamos el PromotionService para encontrar la promo
+        // Buscamos promo de producto (2x1, precio tachado)
         PromotionDTO promotion = promotionService.findBestActivePromotionByVariantId(variant.getId());
 
         if (promotion == null) {
@@ -57,95 +47,78 @@ public class CartService {
         BigDecimal valorDescuento = promotion.getValorDescuento();
         String tipoDescuento = promotion.getTipoDescuento();
 
-        // 1. Manejo de 2x1 (Lógica de ajuste del precio unitario efectivo)
+        // 1. Manejo de 2x1
         if ("dos_por_uno".equalsIgnoreCase(tipoDescuento)) {
-            int cantidad = item.getCantidad();
-
             if (cantidad >= 2) {
-                // Paga 1, lleva 2. Si lleva 3, paga 2, lleva 3. Si lleva 4, paga 2, lleva 4.
                 int pagas = (int) Math.ceil(cantidad / 2.0);
-                int llevas = cantidad;
-
                 BigDecimal costoTotal = precioBase.multiply(BigDecimal.valueOf(pagas));
-
-                // Precio unitario efectivo: costo total / cantidad que llevas
-                return costoTotal.divide(
-                        BigDecimal.valueOf(llevas), 2, RoundingMode.HALF_UP
-                );
+                return costoTotal.divide(BigDecimal.valueOf(cantidad), 2, RoundingMode.HALF_UP);
             }
             return precioBase.setScale(2, RoundingMode.HALF_UP);
         }
 
-        // 2. Manejo de Porcentaje y Monto Fijo
+        // 2. Porcentaje y Monto Fijo
         BigDecimal descuentoMonetario = BigDecimal.ZERO;
-
         if ("porcentaje".equalsIgnoreCase(tipoDescuento)) {
             BigDecimal porcentaje = valorDescuento.divide(new BigDecimal("100.00"), 4, RoundingMode.HALF_UP);
             descuentoMonetario = precioBase.multiply(porcentaje);
-
         } else if ("monto_fijo".equalsIgnoreCase(tipoDescuento)) {
             descuentoMonetario = valorDescuento;
         }
 
-        // 3. Devolver el precio final unitario
         BigDecimal precioFinal = precioBase.subtract(descuentoMonetario);
-
-        return precioFinal.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP) : precioFinal.setScale(2, RoundingMode.HALF_UP);
+        return precioFinal.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : precioFinal.setScale(2, RoundingMode.HALF_UP);
     }
+
+    // -----------------------------------------------------------------
+    // 📦 GESTIÓN BÁSICA DEL CARRITO
+    // -----------------------------------------------------------------
 
     @Transactional
     public CartDTO mergeCartFromClient(Long usuarioId, List<SyncCartRequestDTO.SyncCartItemDTO> itemsFromClient) {
-        // 1. Busca el usuario
         User user = userRepository.findById(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
-        // 2. Buscar el carrito del usuario
         Cart userCart = cartRepository.findByUsuarioId(usuarioId).orElseGet(() -> {
             Cart c = new Cart();
             c.setUsuario(user);
             c.setActivo(true);
             c.setFechaCreacion(LocalDateTime.now());
+            c.setItems(new ArrayList<>()); // Inicializar lista
             return cartRepository.save(c);
         });
 
-        Map<String, CartItem> userMap = userCart.getItems() != null ? userCart.getItems().stream()
-                .collect(Collectors.toMap(
-                        i -> i.getVariante().getId() + "",
-                        i -> i
-                )) : Map.of();
+        // Mapa para actualización rápida
+        Map<Long, CartItem> userMap = userCart.getItems().stream()
+                .collect(Collectors.toMap(i -> i.getVariante().getId(), i -> i));
 
         for (SyncCartRequestDTO.SyncCartItemDTO clientItem : itemsFromClient) {
-            ProductVariant variant = productVariantRepository.findById(clientItem.getVariantId())
-                    .orElse(null);
+            ProductVariant variant = productVariantRepository.findById(clientItem.getVariantId()).orElse(null);
             if (variant == null) continue;
-            String key = variant.getId() + "";
-            if (userMap.containsKey(key)) {
-                CartItem dbItem = userMap.get(key);
+
+            if (userMap.containsKey(variant.getId())) {
+                CartItem dbItem = userMap.get(variant.getId());
                 dbItem.setCantidad(dbItem.getCantidad() + clientItem.getCantidad());
-                cartItemRepository.save(dbItem);
+                dbItem.setPrecioUnitarioSnapshot(calculateItemDiscount(variant, dbItem.getCantidad()));
             } else {
                 CartItem newItem = new CartItem();
                 newItem.setCarrito(userCart);
                 newItem.setVariante(variant);
                 newItem.setCantidad(clientItem.getCantidad());
-                newItem.setPrecioUnitarioSnapshot(variant.getPrecio());
-                cartItemRepository.save(newItem);
+                newItem.setPrecioUnitarioSnapshot(calculateItemDiscount(variant, clientItem.getCantidad()));
                 userCart.getItems().add(newItem);
             }
         }
 
-        // Usa tu método convertToDTO para retornar el resultado
-        return convertToDTO(userCart);
+        userCart.setFechaActualizacion(LocalDateTime.now());
+        // Podríamos revalidar el cupón aquí si existiera
+        if (userCart.getCuponCodigo() != null) revalidateCoupon(userCart);
+
+        return convertToDTO(cartRepository.save(userCart));
     }
 
-
-
-    /**
-     * Obtiene o crea carrito del usuario autenticado
-     */
     @Transactional
     public CartDTO getOrCreateCart(Long usuarioId) {
-
         Cart cart = cartRepository.findByUsuarioIdAndActivoTrue(usuarioId)
                 .orElseGet(() -> {
                     Cart newCart = new Cart();
@@ -153,30 +126,30 @@ public class CartService {
                             .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado")));
                     newCart.setFechaCreacion(LocalDateTime.now());
                     newCart.setActivo(true);
+                    newCart.setItems(new ArrayList<>());
                     return cartRepository.save(newCart);
                 });
         return convertToDTO(cart);
     }
 
-    /**
-     * Obtiene o crea carrito anónimo por sesión
-     */
     @Transactional
     public CartDTO getOrCreateAnonCart(String sessionId) {
-        Cart cart = cartRepository.findBySessionIdAndActivoTrue(sessionId)
+        Cart cart = cartRepository.findFirstBySessionIdAndActivoTrue(sessionId)
                 .orElseGet(() -> {
                     Cart newCart = new Cart();
                     newCart.setSessionId(sessionId);
                     newCart.setFechaCreacion(LocalDateTime.now());
                     newCart.setActivo(true);
+                    newCart.setItems(new ArrayList<>());
                     return cartRepository.save(newCart);
                 });
         return convertToDTO(cart);
     }
 
-    /**
-     * Agrega un item al carrito
-     */
+    // -----------------------------------------------------------------
+    // 🛒 GESTIÓN DE ÍTEMS
+    // -----------------------------------------------------------------
+
     @Transactional
     public CartDTO addItemToCart(Long cartId, CreateCartItemRequestDTO request) {
         Cart cart = cartRepository.findById(cartId)
@@ -186,109 +159,96 @@ public class CartService {
                 .orElseThrow(() -> new ResourceNotFoundException("Variante no encontrada"));
 
         if (variant.getStock() < request.getCantidad()) {
-            throw new IllegalArgumentException("Stock insuficiente. Disponible: " + variant.getStock());
+            throw new IllegalArgumentException("Stock insuficiente.");
         }
 
-        CartItem tempItem = new CartItem();
-        tempItem.setVariante(variant);
-        tempItem.setCantidad(request.getCantidad());
-
-        // 🚨 Calcular precio con descuento de producto 🚨
-        BigDecimal precioFinal = calculateItemDiscount(tempItem);
-
-        CartItem existingItem = cartItemRepository.findByCarritoIdAndVarianteId(cartId, request.getVarianteId())
-                .orElse(null);
+        // Buscar en lista en memoria
+        CartItem existingItem = cart.getItems().stream()
+                .filter(i -> i.getVariante().getId().equals(variant.getId()))
+                .findFirst().orElse(null);
 
         if (existingItem != null) {
             int newQty = existingItem.getCantidad() + request.getCantidad();
             if (variant.getStock() < newQty) {
-                throw new IllegalArgumentException("Stock insuficiente para la cantidad solicitada");
+                throw new IllegalArgumentException("Stock insuficiente para cantidad total.");
             }
             existingItem.setCantidad(newQty);
-            existingItem.setPrecioUnitarioSnapshot(precioFinal); // Actualiza el snapshot por si cambió la promo
-            cartItemRepository.save(existingItem);
+            existingItem.setPrecioUnitarioSnapshot(calculateItemDiscount(variant, newQty));
         } else {
             CartItem newItem = new CartItem();
             newItem.setCarrito(cart);
             newItem.setVariante(variant);
             newItem.setCantidad(request.getCantidad());
-            newItem.setPrecioUnitarioSnapshot(precioFinal);
-            cartItemRepository.save(newItem);
+            newItem.setPrecioUnitarioSnapshot(calculateItemDiscount(variant, request.getCantidad()));
+            cart.getItems().add(newItem);
         }
 
         cart.setFechaActualizacion(LocalDateTime.now());
-        cartRepository.save(cart);
 
-        return convertToDTO(cart);
+        // REVALIDACIÓN AUTOMÁTICA DE CUPÓN
+        if (cart.getCuponCodigo() != null) revalidateCoupon(cart);
+
+        return convertToDTO(cartRepository.save(cart));
     }
-    /**
-     * Actualiza la cantidad de un item del carrito
-     */
+
     @Transactional
     public CartDTO updateCartItem(Long cartId, Long itemId, UpdateCartItemRequestDTO request) {
         Cart cart = cartRepository.findById(cartId)
                 .orElseThrow(() -> new ResourceNotFoundException("Carrito no encontrado"));
 
-        CartItem item = cartItemRepository.findById(itemId)
+        CartItem item = cart.getItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("Item no encontrado"));
 
-        if (!item.getCarrito().getId().equals(cartId)) {
-            throw new IllegalArgumentException("El item no pertenece a este carrito");
-        }
-
-        ProductVariant variant = item.getVariante();
-        if (variant.getStock() < request.getCantidad()) {
-            throw new IllegalArgumentException("Stock insuficiente. Disponible: " + variant.getStock());
+        if (item.getVariante().getStock() < request.getCantidad()) {
+            throw new IllegalArgumentException("Stock insuficiente.");
         }
 
         item.setCantidad(request.getCantidad());
-
-        // 🚨 Recalcular el snapshot por si el cambio de cantidad afecta al 2x1 🚨
-        CartItem tempItem = new CartItem();
-        tempItem.setVariante(variant);
-        tempItem.setCantidad(request.getCantidad());
-        item.setPrecioUnitarioSnapshot(calculateItemDiscount(tempItem));
-
-        cartItemRepository.save(item);
+        // Recalcular precio unitario (ej. si ahora aplica 2x1)
+        item.setPrecioUnitarioSnapshot(calculateItemDiscount(item.getVariante(), request.getCantidad()));
 
         cart.setFechaActualizacion(LocalDateTime.now());
-        cartRepository.save(cart);
+        if (cart.getCuponCodigo() != null) revalidateCoupon(cart);
 
-        return convertToDTO(cart);
+        return convertToDTO(cartRepository.save(cart));
     }
 
-    /**
-     * Elimina un item del carrito
-     */
     @Transactional
     public CartDTO removeItemFromCart(Long cartId, Long itemId) {
         Cart cart = cartRepository.findById(cartId)
                 .orElseThrow(() -> new ResourceNotFoundException("Carrito no encontrado"));
 
-        CartItem item = cartItemRepository.findById(itemId)
+        CartItem itemToRemove = cart.getItems().stream()
+                .filter(item -> item.getId().equals(itemId))
+                .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("Item no encontrado"));
 
-        if (!item.getCarrito().getId().equals(cartId)) {
-            throw new IllegalArgumentException("El item no pertenece a este carrito");
-        }
-
-        cartItemRepository.deleteById(itemId);
+        // CORRECCIÓN: Borrado en memoria para orphanRemoval
+        cart.getItems().remove(itemToRemove);
+        itemToRemove.setCarrito(null);
 
         cart.setFechaActualizacion(LocalDateTime.now());
-        cartRepository.save(cart);
+        if (cart.getCuponCodigo() != null) revalidateCoupon(cart);
 
-        return convertToDTO(cart);
+        return convertToDTO(cartRepository.save(cart));
     }
 
-    /**
-     * Vacía el carrito
-     */
     @Transactional
     public void clearCart(Long cartId) {
         Cart cart = cartRepository.findById(cartId)
                 .orElseThrow(() -> new ResourceNotFoundException("Carrito no encontrado"));
 
-        cartItemRepository.deleteByCarritoId(cartId);
+        // CORRECCIÓN: Limpiar lista para orphanRemoval
+        if (cart.getItems() != null) {
+            cart.getItems().forEach(item -> item.setCarrito(null));
+            cart.getItems().clear();
+        }
+
+        // Limpiar estado de cupón también
+        cart.setCuponCodigo(null);
+        cart.setDescuentoAplicado(BigDecimal.ZERO);
 
         cart.setFechaActualizacion(LocalDateTime.now());
         cartRepository.save(cart);
@@ -296,7 +256,7 @@ public class CartService {
 
 
     // -------------------------------------------------------------------------
-    // 🧩 LÓGICA DE DESCUENTO DE CUPÓN (APLICADA AL TOTAL)
+    // 🏷️ LÓGICA DE CUPONES (PERSISTENTE Y CON REGALOS)
     // -------------------------------------------------------------------------
 
     @Transactional
@@ -304,51 +264,39 @@ public class CartService {
         Cart cart = cartRepository.findById(cartId)
                 .orElseThrow(() -> new ResourceNotFoundException("Carrito no encontrado"));
 
-        PromotionDTO coupon = promotionService.getByCodigo(couponCode); // Lanza excepción si no existe
+        // 1. Obtener DTO (Incluye info de regalo si existe)
+        PromotionDTO coupon = promotionService.getByCodigo(couponCode);
 
-        // Si no está activo o no es un cupón aplicable al carrito (podrías añadir una regla aquí)
-        if (!coupon.getActivo() || coupon.getCodigo() == null) {
-            this.lastAppliedCouponDiscount = BigDecimal.ZERO;
-            this.lastAppliedCoupon = null;
-            throw new IllegalArgumentException("Cupón inválido o no vigente.");
+        // 2. Validaciones básicas
+        if (coupon == null || !coupon.getActivo()) {
+            throw new IllegalArgumentException("Cupón inválido o expirado.");
         }
 
-        // Recalcular subtotal actual (Base para cupones porcentuales/mínimo de compra)
-        BigDecimal subtotalNetoItems = cart.getItems().stream()
-                .map(item -> item.getPrecioUnitarioSnapshot().multiply(BigDecimal.valueOf(item.getCantidad())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        // Aplicar reglas de cupón
-        if (coupon.getMinCompra() != null && subtotalNetoItems.compareTo(coupon.getMinCompra()) < 0) {
-            this.lastAppliedCouponDiscount = BigDecimal.ZERO;
-            this.lastAppliedCoupon = null;
-            throw new IllegalArgumentException("El subtotal no alcanza el mínimo de compra requerido (" + coupon.getMinCompra() + ").");
+        // Si ya había otro cupón aplicado, limpiamos sus efectos (especialmente regalos)
+        if (cart.getCuponCodigo() != null && !cart.getCuponCodigo().equals(couponCode)) {
+            removeFreeGiftsFromCart(cart, cart.getCuponCodigo());
         }
 
-        String tipoDescuento = coupon.getTipoDescuento();
-        BigDecimal valor = coupon.getValorDescuento();
-        BigDecimal descuentoAplicado = BigDecimal.ZERO;
-
-        if ("porcentaje".equalsIgnoreCase(tipoDescuento)) {
-            BigDecimal porcentaje = valor.divide(new BigDecimal("100.00"), 4, RoundingMode.HALF_UP);
-            descuentoAplicado = subtotalNetoItems.multiply(porcentaje).setScale(2, RoundingMode.HALF_UP);
-
-        } else if ("monto_fijo".equalsIgnoreCase(tipoDescuento)) {
-            descuentoAplicado = valor.setScale(2, RoundingMode.HALF_UP);
-
-        } else {
-            // 2x1, etc., no son cupones de carrito
-            throw new IllegalArgumentException("Tipo de cupón no aplicable a nivel de carrito.");
+        // 3. Validar Monto Mínimo
+        BigDecimal subtotal = calculateSubtotal(cart);
+        if (coupon.getMinCompra() != null && subtotal.compareTo(coupon.getMinCompra()) < 0) {
+            throw new IllegalArgumentException("No alcanzas el monto mínimo de compra: " + coupon.getMinCompra());
         }
 
-        // Guardar descuento en la variable temporal
-        this.lastAppliedCouponDiscount = descuentoAplicado;
-        this.lastAppliedCoupon = coupon;
+        // 4. 🎁 APLICAR REGALOS (Si el cupón los tiene)
+        if (coupon.getVarianteGratisId() != null) {
+            addFreeGiftToCart(cart, coupon.getVarianteGratisId(), coupon.getCantidadGratis());
+        }
 
+        // 5. Calcular Descuento Monetario
+        BigDecimal descuento = calculateCouponValue(coupon, subtotal);
+
+        // 6. PERSISTENCIA EN BD
+        cart.setCuponCodigo(coupon.getCodigo());
+        cart.setDescuentoAplicado(descuento);
         cart.setFechaActualizacion(LocalDateTime.now());
-        cartRepository.save(cart);
 
-        return convertToDTO(cart);
+        return convertToDTO(cartRepository.save(cart));
     }
 
     @Transactional
@@ -356,54 +304,129 @@ public class CartService {
         Cart cart = cartRepository.findById(cartId)
                 .orElseThrow(() -> new ResourceNotFoundException("Carrito no encontrado"));
 
-        this.lastAppliedCouponDiscount = BigDecimal.ZERO;
-        this.lastAppliedCoupon = null;
+        String codigoAnterior = cart.getCuponCodigo();
 
-        cart.setFechaActualizacion(LocalDateTime.now());
-        cartRepository.save(cart);
+        // 1. Limpiar campos de persistencia
+        cart.setCuponCodigo(null);
+        cart.setDescuentoAplicado(BigDecimal.ZERO);
 
-        return convertToDTO(cart);
-    }
-
-    /**
-     * Convierte entidad Cart a DTO con cálculos de totales
-     */
-    private CartDTO convertToDTO(Cart cart) {
-        List<CartItem> items = cart.getItems() != null ? cart.getItems() : cartItemRepository.findByCarritoId(cart.getId());
-
-        // 1. Subtotal Neto de Ítems (ya incluye el descuento de producto/2x1)
-        BigDecimal subtotalNetoItems = items.stream()
-                .map(item -> item.getPrecioUnitarioSnapshot().multiply(BigDecimal.valueOf(item.getCantidad())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
-
-        // 2. Descuento Total (Descuento de Cupón)
-        BigDecimal descuentoTotal = this.lastAppliedCouponDiscount.setScale(2, RoundingMode.HALF_UP);
-
-        // 3. Base Imponible: Subtotal menos Descuento de Cupón
-        BigDecimal baseImponible = subtotalNetoItems.subtract(descuentoTotal);
-        if (baseImponible.compareTo(BigDecimal.ZERO) < 0) {
-            baseImponible = BigDecimal.ZERO;
+        // 2. Remover regalos asociados
+        if (codigoAnterior != null) {
+            removeFreeGiftsFromCart(cart, codigoAnterior);
         }
 
-        // 4. Impuestos (ej: 18% IGV)
+        cart.setFechaActualizacion(LocalDateTime.now());
+        return convertToDTO(cartRepository.save(cart));
+    }
+
+    // -------------------------------------------------------------------------
+    // ⚙️ MÉTODOS AUXILIARES PRIVADOS (LÓGICA INTERNA)
+    // -------------------------------------------------------------------------
+
+    private void revalidateCoupon(Cart cart) {
+        try {
+            PromotionDTO coupon = promotionService.getByCodigo(cart.getCuponCodigo());
+            BigDecimal subtotal = calculateSubtotal(cart);
+
+            // Verificar regla de mínimo de compra
+            if (coupon.getMinCompra() != null && subtotal.compareTo(coupon.getMinCompra()) < 0) {
+                // Ya no cumple -> Remover cupón
+                removeFreeGiftsFromCart(cart, cart.getCuponCodigo());
+                cart.setCuponCodigo(null);
+                cart.setDescuentoAplicado(BigDecimal.ZERO);
+            } else {
+                // Sigue cumpliendo -> Recalcular monto
+                BigDecimal nuevoDescuento = calculateCouponValue(coupon, subtotal);
+                cart.setDescuentoAplicado(nuevoDescuento);
+            }
+        } catch (Exception e) {
+            // Si el cupón ya no existe, limpiar
+            cart.setCuponCodigo(null);
+            cart.setDescuentoAplicado(BigDecimal.ZERO);
+        }
+    }
+
+    private BigDecimal calculateSubtotal(Cart cart) {
+        // Suma de precios SNAPSHOT (ya tienen descuento de 2x1 aplicado)
+        return cart.getItems().stream()
+                .map(i -> i.getPrecioUnitarioSnapshot().multiply(BigDecimal.valueOf(i.getCantidad())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal calculateCouponValue(PromotionDTO coupon, BigDecimal subtotal) {
+        BigDecimal descuento = BigDecimal.ZERO;
+        if ("porcentaje".equalsIgnoreCase(coupon.getTipoDescuento())) {
+            BigDecimal factor = coupon.getValorDescuento().divide(new BigDecimal("100.00"), 4, RoundingMode.HALF_UP);
+            descuento = subtotal.multiply(factor);
+        } else if ("monto_fijo".equalsIgnoreCase(coupon.getTipoDescuento())) {
+            descuento = coupon.getValorDescuento();
+        }
+        // Seguridad: No descontar más que el total
+        return descuento.compareTo(subtotal) > 0 ? subtotal : descuento.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private void addFreeGiftToCart(Cart cart, Long variantId, Integer cantidad) {
+        // Verificar si ya existe el regalo (precio 0)
+        boolean exists = cart.getItems().stream()
+                .anyMatch(i -> i.getVariante().getId().equals(variantId)
+                        && i.getPrecioUnitarioSnapshot().compareTo(BigDecimal.ZERO) == 0);
+
+        if (!exists) {
+            ProductVariant variant = productVariantRepository.findById(variantId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Regalo no disponible"));
+
+            CartItem gift = new CartItem();
+            gift.setCarrito(cart);
+            gift.setVariante(variant);
+            gift.setCantidad(cantidad != null ? cantidad : 1);
+            gift.setPrecioUnitarioSnapshot(BigDecimal.ZERO); // ¡Gratis!
+            cart.getItems().add(gift);
+        }
+    }
+
+    private void removeFreeGiftsFromCart(Cart cart, String couponCode) {
+        try {
+            PromotionDTO promo = promotionService.getByCodigo(couponCode);
+            if (promo != null && promo.getVarianteGratisId() != null) {
+                // Borrar ítem si coincide ID y precio es 0
+                cart.getItems().removeIf(i ->
+                        i.getVariante().getId().equals(promo.getVarianteGratisId())
+                                && i.getPrecioUnitarioSnapshot().compareTo(BigDecimal.ZERO) == 0
+                );
+            }
+        } catch (Exception e) {
+            // Ignorar si promo antigua fue borrada
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // 🔄 CONVERSIÓN A DTO
+    // -------------------------------------------------------------------------
+
+    private CartDTO convertToDTO(Cart cart) {
+        // Recalcular para asegurar consistencia visual
+        BigDecimal subtotal = calculateSubtotal(cart);
+
+        // LEER ESTADO DESDE ENTIDAD (Persistencia)
+        BigDecimal descuentoTotal = cart.getDescuentoAplicado() != null ? cart.getDescuentoAplicado() : BigDecimal.ZERO;
+
+        BigDecimal baseImponible = subtotal.subtract(descuentoTotal);
+        if (baseImponible.compareTo(BigDecimal.ZERO) < 0) baseImponible = BigDecimal.ZERO;
+
         BigDecimal impuestos = baseImponible.multiply(new BigDecimal("0.18")).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal costoEnvio = BigDecimal.ZERO; // Implementar lógica de envío real si aplica
+        BigDecimal total = baseImponible.add(impuestos).add(costoEnvio);
 
-        // 5. Costo de envío
-        BigDecimal costoEnvio = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
-
-        // 6. Total
-        BigDecimal total = baseImponible.add(impuestos).add(costoEnvio).setScale(2, RoundingMode.HALF_UP);
-
-        List<CartItemDTO> itemDTOs = items.stream()
+        List<CartItemDTO> itemDTOs = cart.getItems().stream()
                 .map(this::convertItemToDTO)
                 .collect(Collectors.toList());
 
-        List<CartDTO.CuponAplicadoDTO> cuponesAplicados = List.of();
-        if (this.lastAppliedCoupon != null && this.lastAppliedCouponDiscount.compareTo(BigDecimal.ZERO) > 0) {
-            cuponesAplicados = List.of(CartDTO.CuponAplicadoDTO.builder()
-                    .codigo(this.lastAppliedCoupon.getCodigo())
-                    .nombre(this.lastAppliedCoupon.getNombre())
-                    .descuentoAplicado(this.lastAppliedCouponDiscount)
+        List<CartDTO.CuponAplicadoDTO> cuponesList = new ArrayList<>();
+        if (cart.getCuponCodigo() != null) {
+            cuponesList.add(CartDTO.CuponAplicadoDTO.builder()
+                    .codigo(cart.getCuponCodigo())
+                    .nombre("Cupón Aplicado")
+                    .descuentoAplicado(descuentoTotal)
                     .build());
         }
 
@@ -415,27 +438,20 @@ public class CartService {
                 .fechaActualizacion(cart.getFechaActualizacion())
                 .activo(cart.getActivo())
                 .items(itemDTOs)
-                .subtotal(subtotalNetoItems)
+                .subtotal(subtotal)
                 .descuentoTotal(descuentoTotal)
                 .impuestos(impuestos)
                 .costoEnvio(costoEnvio)
                 .total(total)
-                .cuponesAplicados(cuponesAplicados)
+                .cuponesAplicados(cuponesList)
                 .build();
     }
-    /**
-     * Convierte CartItem a DTO
-     */
+
     private CartItemDTO convertItemToDTO(CartItem item) {
         ProductVariant variant = item.getVariante();
         Product product = variant.getProduct();
 
-        // Obtener imagen principal
         String imagenUrl = "/images/placeholder.png";
-        // TODO: Obtener imagen principal de la variante
-
-        BigDecimal subtotal = item.getPrecioUnitarioSnapshot()
-                .multiply(BigDecimal.valueOf(item.getCantidad()));
 
         return CartItemDTO.builder()
                 .id(item.getId())
@@ -446,9 +462,8 @@ public class CartService {
                 .imagenUrl(imagenUrl)
                 .cantidad(item.getCantidad())
                 .precioUnitario(item.getPrecioUnitarioSnapshot())
-                .subtotal(subtotal)
+                .subtotal(item.getPrecioUnitarioSnapshot().multiply(BigDecimal.valueOf(item.getCantidad())))
                 .stockDisponible(variant.getStock())
                 .build();
     }
-
 }
