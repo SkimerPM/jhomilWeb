@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class BrandResponseDTO {
     private Long id;
     private String nombre;
+    private String imagenLogoURL;
 }

@@ -9,4 +9,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class BrandRequestDTO {
     private String nombre;
+    private String imagenLogoURL;
 }
