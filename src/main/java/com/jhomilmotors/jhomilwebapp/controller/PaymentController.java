@@ -1,11 +1,15 @@
 package com.jhomilmotors.jhomilwebapp.controller;
+import com.jhomilmotors.jhomilwebapp.dto.CreatePaymentRequest;
 import com.jhomilmotors.jhomilwebapp.dto.CreatePaymentRequestDTO;
 import com.jhomilmotors.jhomilwebapp.dto.PaymentDTO;
 import com.jhomilmotors.jhomilwebapp.dto.VerifyPaymentRequestDTO;
+import com.jhomilmotors.jhomilwebapp.service.MercadoPagoService;
 import com.jhomilmotors.jhomilwebapp.service.PaymentService;
 import com.jhomilmotors.jhomilwebapp.service.UserService;
+import com.mercadopago.resources.preference.Preference;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -16,6 +20,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/payments")
@@ -25,11 +30,30 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final UserService userService;
 
-    /**
-     * ✅ REQUIERE AUTENTICACIÓN
-     * Obtiene pagos de una orden
-     * GET /api/v1/payments/order/{orderId}
-     */
+    @Autowired
+    private MercadoPagoService mercadoPagoService;
+    @PostMapping("/create/{codigoPedido}")
+    public ResponseEntity<?> createPayment(@PathVariable String codigoPedido) {
+        try {
+            Preference pref = mercadoPagoService.crearPreferencia(codigoPedido);
+            return ResponseEntity.ok(Map.of(
+                    "preferenceId", pref.getId(),
+                    "initPoint", pref.getInitPoint(),
+                    "sandboxInitPoint", pref.getSandboxInitPoint()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+
+        }
+    }
+
+
+
+            /**
+             * ✅ REQUIERE AUTENTICACIÓN
+             * Obtiene pagos de una orden
+             * GET /api/v1/payments/order/{orderId}
+             */
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/order/{orderId}")
     public ResponseEntity<List<PaymentDTO>> getPaymentsByOrder(@PathVariable Long orderId) {
@@ -92,5 +116,7 @@ public class PaymentController {
         Page<PaymentDTO> payments = paymentService.getPaymentsByStatus(estado, pageable);
         return ResponseEntity.ok(payments);
     }
+
+
 
 }
