@@ -392,10 +392,9 @@ public class CatalogController {
      * Busca variantes cuyo SKU contiene la cadena indicada.
      */
     @GetMapping("/buscar-en-variantes")
-    public ResponseEntity<List<ProductVariant>> buscarEnVariantes(@RequestParam String q) {
+    public ResponseEntity<List<ProductVariantDTO>> buscarEnVariantes(@RequestParam String q) {
         return ResponseEntity.ok(catalogService.buscarEnVariantes(q));
     }
-
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @GetMapping("/admin/low-stock")

@@ -36,8 +36,19 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
 
     Page<ProductVariant> findByProductId(Long productoId, Pageable pageable);
 
-    @Query("SELECT v FROM ProductVariant v WHERE LOWER(v.sku) LIKE LOWER(CONCAT('%', :q, '%'))")
-    List<ProductVariant> buscarEnVariantes(@Param("q") String q);
+    // PASO 1: Buscamos la variante, traemos al Padre (Product) y los Atributos
+    // Quitamos el FETCH de imagenes aquí
+    @Query("SELECT DISTINCT v FROM ProductVariant v " +
+            "JOIN FETCH v.product p " +
+            "LEFT JOIN FETCH v.atributos " +
+            "WHERE LOWER(v.sku) LIKE LOWER(CONCAT('%', :q, '%'))")
+    List<ProductVariant> buscarConAtributos(@Param("q") String q);
+
+    // PASO 2: Una consulta auxiliar para cargar las imágenes de esas variantes
+    @Query("SELECT DISTINCT v FROM ProductVariant v " +
+            "LEFT JOIN FETCH v.imagenes " +
+            "WHERE v IN :variantes")
+    List<ProductVariant> cargarImagenes(@Param("variantes") List<ProductVariant> variantes);
 
     List<ProductVariant> findByStockLessThanEqualAndActivoTrue(Integer stockLimit);
 }
