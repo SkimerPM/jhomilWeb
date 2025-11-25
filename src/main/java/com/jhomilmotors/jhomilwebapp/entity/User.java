@@ -60,6 +60,9 @@ public class User {
     @Column(name = "foto_perfil", length = 512)
     private String fotoPerfil;
 
+    @Column(name = "email_verificado", nullable = false)
+    private boolean emailVerificado = false;
+
     @Column(name = "activo", nullable = false)
     private boolean activo = true;
 
@@ -86,6 +89,22 @@ public class User {
         this.activo = activo;
         this.fechaRegistro = fechaRegistro;
         this.ultimoAcceso = ultimoAcceso;
+    }
+
+    public List<RefreshToken> getRefreshTokens() {
+        return refreshTokens;
+    }
+
+    public void setRefreshTokens(List<RefreshToken> refreshTokens) {
+        this.refreshTokens = refreshTokens;
+    }
+
+    public boolean isEmailVerificado() {
+        return emailVerificado;
+    }
+
+    public void setEmailVerificado(boolean emailVerificado) {
+        this.emailVerificado = emailVerificado;
     }
 
     public String getDireccion() {

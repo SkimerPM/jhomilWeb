@@ -49,6 +49,8 @@ public class SecurityConfig {
 
 
                                 .requestMatchers("/api/v1/cart/**").permitAll()
+                                .requestMatchers("/api/auth/resend-verification").permitAll()
+                        .requestMatchers("/api/auth/verify-email").permitAll()
                                 // Permitir GET a usuarios por email (opcional si quieres que sea público)
 //                        .requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
                                 // Promociones: permitir GET a todos, proteger POST/PUT/DELETE solo para ADMIN

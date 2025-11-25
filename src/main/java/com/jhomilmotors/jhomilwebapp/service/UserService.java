@@ -1,23 +1,23 @@
 package com.jhomilmotors.jhomilwebapp.service;
 
 import com.jhomilmotors.jhomilwebapp.dto.*;
+import com.jhomilmotors.jhomilwebapp.entity.EmailVerificationToken;
 import com.jhomilmotors.jhomilwebapp.entity.Role;
 import com.jhomilmotors.jhomilwebapp.entity.User;
 import com.jhomilmotors.jhomilwebapp.enums.RegistrationMethod;
 import com.jhomilmotors.jhomilwebapp.enums.RoleName;
+import com.jhomilmotors.jhomilwebapp.repository.EmailVerificationTokenRepository;
 import com.jhomilmotors.jhomilwebapp.repository.RoleRepository;
 import com.jhomilmotors.jhomilwebapp.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -26,15 +26,20 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
-
+    private final EmailVerificationTokenRepository emailVerificationTokenRepository;
+    private final EmailService emailService;
     public UserService(
             UserRepository userRepository,
             RoleRepository roleRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            EmailVerificationTokenRepository emailVerificationTokenRepository,
+            EmailService emailService
     ) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
+        this.emailVerificationTokenRepository = emailVerificationTokenRepository;
+        this.emailService = emailService;
     }
 
     public User registerUser(UserRegistrationDTO dto) {
@@ -57,18 +62,31 @@ public class UserService {
         user.setNombre(dto.getNombre());
         user.setApellido(dto.getApellido());
         user.setMetodoRegistro(RegistrationMethod.LOCAL);
+
+        // Nuevo: email no verificado al registrarse por método LOCAL
+        user.setEmailVerificado(false);
+
+        // Puedes mantener activo=true y luego, en el login, combinar ambos flags
         user.setActivo(true);
+
         user.setFechaRegistro(LocalDateTime.now());
         user.setUltimoAcceso(null);
         // Los demás campos quedan null para que el usuario los complete luego
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        // Nuevo: generar token de verificación y guardarlo
+        createEmailVerificationToken(savedUser);
+
+        // Más adelante, desde aquí llamaremos a un EmailService para enviar el correo
+        return savedUser;
     }
 
     public User findByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new EntityNotFoundException("Usuario con email '" + email + "' no encontrado"));
     }
+
     public User findByGoogleId(String googleId) {
         return userRepository.findByGoogleId(googleId)
                 .orElseThrow(() -> new EntityNotFoundException("Usuario con googleId '" + googleId + "' no encontrado"));
@@ -89,6 +107,11 @@ public class UserService {
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
+
+            // Solo usuarios locales: exige email verificado
+            if (user.getMetodoRegistro() == RegistrationMethod.LOCAL && !user.isEmailVerificado()) {
+                throw new IllegalStateException("Debes verificar tu correo electrónico antes de iniciar sesión.");
+            }
 
             if (passwordEncoder.matches(password, user.getPasswordHash())) {
                 return user;
@@ -111,25 +134,30 @@ public class UserService {
             newUser.setEmail(email);
             newUser.setNombre(name);
             newUser.setRol(customerRole);
-            newUser.setMetodoRegistro(RegistrationMethod.GOOGLE); // Lo marcamos como usuario de Google
+            newUser.setMetodoRegistro(RegistrationMethod.GOOGLE); // Usuario de Google
             newUser.setGoogleId(googleId);
+
+            // Para Google asumimos email verificado por el proveedor
+            newUser.setEmailVerificado(true);
+
             newUser.setActivo(true);
             newUser.setFechaRegistro(LocalDateTime.now());
             // El passwordHash queda en null porque la autenticación es con Google
 
             userRepository.save(newUser);
         } else {
-            // Si el usuario existe, actualiza googleId y método de registro SI vienen del login Google
+            // Si el usuario existe, actualiza googleId y método de registro si vienen del login Google
             User user = existUser.get();
             user.setUltimoAcceso(LocalDateTime.now());
             if (user.getGoogleId() == null || !user.getGoogleId().equals(googleId)) {
                 user.setGoogleId(googleId);
                 user.setMetodoRegistro(RegistrationMethod.GOOGLE);
+                // Si pasa a Google, también podemos marcar el email como verificado
+                user.setEmailVerificado(true);
             }
             userRepository.save(user);
         }
     }
-
 
     public User registerAdmin(AdminRegistrationDTO dto) {
         // Verifica que el rol enviado en el DTO sea "ADMIN"
@@ -142,11 +170,9 @@ public class UserService {
             throw new IllegalArgumentException("Email ya registrado.");
         }
 
-
         // Busca el rol ADMIN
         Role adminRole = roleRepository.findByNombre(RoleName.ADMIN)
                 .orElseThrow(() -> new IllegalArgumentException("Rol ADMIN no existe"));
-
 
         User user = new User();
         user.setEmail(dto.getEmail());
@@ -154,45 +180,39 @@ public class UserService {
         user.setNombre(dto.getFirstName());
         user.setApellido(dto.getLastName());
         user.setRol(adminRole);
-        user.setActivo(true);
         user.setMetodoRegistro(RegistrationMethod.LOCAL);
+
+        // Admin creado por backoffice: lo marcamos como verificado
+        user.setEmailVerificado(true);
+        user.setActivo(true);
+
         user.setFechaRegistro(LocalDateTime.now());
 
         return userRepository.save(user);
     }
 
-//    public List<User> listAll() {
-//        return userRepository.findAll();
-//    }
-        public Page<AdminUserListResponseDTO> listAll(Pageable pageable) {
-            return userRepository.findAll(pageable)
-            .map(u -> new AdminUserListResponseDTO(
-                    u.getId(),
-                    u.getRol().getNombre().name(),
-                    u.getNombre(),
-                    u.getApellido(),
-                    u.getEmail(),
-                    u.getTelefono(),
-                    u.getDocumento(),
-                    u.isActivo(),
-                    u.getFechaRegistro(),
-                    u.getUltimoAcceso()
-            ));
-        }
+    public Page<AdminUserListResponseDTO> listAll(Pageable pageable) {
+        return userRepository.findAll(pageable)
+                .map(u -> new AdminUserListResponseDTO(
+                        u.getId(),
+                        u.getRol().getNombre().name(),
+                        u.getNombre(),
+                        u.getApellido(),
+                        u.getEmail(),
+                        u.getTelefono(),
+                        u.getDocumento(),
+                        u.isActivo(),
+                        u.getFechaRegistro(),
+                        u.getUltimoAcceso()
+                ));
+    }
 
-    //ususario por id:
+    // Usuario por id:
     public User findById(Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
     }
 
-//    public User actualizar(Long id, UserProfileDTO datos) {
-//        User user = userRepository.findById(id).orElseThrow();
-//        user.setNombre(datos.nombre());
-//        user.setEmail(datos.email());
-//        // se pueden considerar más..
-//        return userRepository.save(user);
-//    }
     public CustomerProfileDTO actualizar(Long id, UpdateProfileCustomerDTO request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
@@ -228,7 +248,7 @@ public class UserService {
         user.setActivo(dto.isActivo());
         user.setDocumento(dto.getDocumento());
 
-        // No se actualizan: documento, passwordHash, metodoRegistro, rol, googleId, fotoPerfil, fechaRegistro, ultimoAcceso
+        // No se actualizan: passwordHash, metodoRegistro, rol, googleId, fotoPerfil, fechaRegistro, ultimoAcceso
 
         userRepository.save(user);
     }
@@ -261,5 +281,28 @@ public class UserService {
     public Long getUserIdFromAuthentication(Authentication authentication) {
         User user = getUserFromAuthentication(authentication);
         return user.getId();
+    }
+
+    // ============================
+    // LÓGICA DE TOKEN DE VERIFICACIÓN
+    // ============================
+
+    private void createEmailVerificationToken(User user) {
+        String tokenValue = java.util.UUID.randomUUID().toString();
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime expiresAt = now.plusHours(24);
+
+        EmailVerificationToken token = new EmailVerificationToken(
+                tokenValue, user, now, expiresAt
+        );
+        emailVerificationTokenRepository.save(token);
+
+        // Construir URL de verificación (ajusta tu dominio según entorno)
+        String baseUrl = "http://localhost:8080"; // o ajústalo dinámico para producción
+        String verifyUrl = baseUrl + "/api/auth/verify-email?token=" + tokenValue;
+
+        // Llama al servicio de email
+        emailService.sendVerificationEmail(user.getEmail(), verifyUrl);
     }
 }
