@@ -49,4 +49,6 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
             "LEFT JOIN FETCH v.imagenes " +
             "WHERE v IN :variantes")
     List<ProductVariant> cargarImagenes(@Param("variantes") List<ProductVariant> variantes);
+
+    List<ProductVariant> findByStockLessThanEqualAndActivoTrue(Integer stockLimit);
 }

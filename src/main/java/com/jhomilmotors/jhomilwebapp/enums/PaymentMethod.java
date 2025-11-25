@@ -5,7 +5,8 @@ public enum PaymentMethod {
     PLIN("plin"),
     TRANSFERENCIA("transferencia"),
     CONTRAENTREGA("contraentrega"),
-    POS("pos");
+    POS("pos"),
+    MERCADO_PAGO("mercado_pago");
     private final String value;
 
     PaymentMethod(String value) {

@@ -870,5 +870,27 @@ public class CatalogService {
                 .build();
     }
 
+    public List<LowStockResponseDTO> getLowStockProducts(int stockLimit) {
+        List<ProductVariant> lowStockVariants = productVariantRepository.findByStockLessThanEqualAndActivoTrue(stockLimit);
+
+        return lowStockVariants.stream().map(v -> {
+            // Lógica simple para obtener la primera imagen disponible
+            String imgUrl = "/images/placeholder.png";
+            if (v.getImagenes() != null && !v.getImagenes().isEmpty()) {
+                imgUrl = v.getImagenes().get(0).getUrl();
+            } else if (v.getProduct().getImagenes() != null && !v.getProduct().getImagenes().isEmpty()) {
+                imgUrl = v.getProduct().getImagenes().get(0).getUrl();
+            }
+
+            return LowStockResponseDTO.builder()
+                    .varianteId(v.getId())
+                    .productoNombre(v.getProduct().getNombre())
+                    .sku(v.getSku())
+                    .stock(v.getStock())
+                    .marca(v.getProduct().getBrand() != null ? v.getProduct().getBrand().getNombre() : "Genérico")
+                    .imagenUrl(imgUrl)
+                    .build();
+        }).collect(Collectors.toList());
+    }
 
 }
