@@ -5,6 +5,7 @@ import com.jhomilmotors.jhomilwebapp.dto.VerifyPaymentRequestDTO;
 import com.jhomilmotors.jhomilwebapp.service.MercadoPagoService;
 import com.jhomilmotors.jhomilwebapp.service.PaymentService;
 import com.jhomilmotors.jhomilwebapp.service.UserService;
+import com.mercadopago.exceptions.MPApiException;
 import com.mercadopago.resources.preference.Preference;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,17 +34,49 @@ public class PaymentController {
     private MercadoPagoService mercadoPagoService;
     @PostMapping("/create/{codigoPedido}")
     public ResponseEntity<?> createPayment(@PathVariable String codigoPedido) {
+        System.out.println("🚀 INICIANDO CREACIÓN DE PREFERENCIA PARA: " + codigoPedido);
         try {
+            // Llamamos al servicio
             Preference pref = mercadoPagoService.crearPreferencia(codigoPedido);
+
+            System.out.println("✅ Preferencia creada con éxito ID: " + pref.getId());
+
             return ResponseEntity.ok(Map.of(
                     "preferenceId", pref.getId(),
                     "initPoint", pref.getInitPoint(),
                     "sandboxInitPoint", pref.getSandboxInitPoint()
             ));
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        } catch (MPApiException apiException) {
+        // 🚨 ESTO IMPRIMIRÁ LA RAZÓN EXACTA (Token inválido, Email duplicado, etc)
+        System.err.println("🔥 ERROR DE API MERCADO PAGO: " + apiException.getApiResponse().getStatusCode());
+        System.err.println("📄 DETALLE DEL ERROR: " + apiException.getApiResponse().getContent());
 
+        return ResponseEntity.status(apiException.getApiResponse().getStatusCode())
+                .body(Map.of("error", apiException.getApiResponse().getContent()));
+
+    } catch (Exception e) {
+        System.err.println("❌ ERROR GENÉRICO:");
+        e.printStackTrace();
+        return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+    }
+    }
+
+    @PostMapping("/webhook")
+    public ResponseEntity<?> recibirNotificacion(@RequestParam Map<String, String> params) {
+        // Mercado Pago envía param "id" o "data.id" dependiendo la versión
+        String id = params.get("data.id");
+        if (id == null) {
+            id = params.get("id");
         }
+
+        String topic = params.get("type");
+        if (topic == null) topic = params.get("topic");
+
+        if ("payment".equals(topic) && id != null) {
+            mercadoPagoService.procesarNotificacionPago(id);
+        }
+
+        return ResponseEntity.ok().build();
     }
 
 
