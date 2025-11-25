@@ -238,6 +238,17 @@ public class OrderService {
         ProductVariant variant = item.getVariante();
         Product product = variant.getProduct();
 
+        String imgUrl = "/images/placeholder.png"; // URL por defecto
+
+        // Primero buscamos imagen en la variante
+        if (variant.getImagenes() != null && !variant.getImagenes().isEmpty()) {
+            imgUrl = variant.getImagenes().get(0).getUrl();
+        }
+        // Si no, buscamos en el producto padre
+        else if (product.getImagenes() != null && !product.getImagenes().isEmpty()) {
+            imgUrl = product.getImagenes().get(0).getUrl();
+        }
+
         return OrderItemDTO.builder()
                 .id(item.getId())
                 .pedidoId(item.getPedido().getId())
@@ -252,6 +263,7 @@ public class OrderService {
                 .totalNeto(item.getTotalNeto())
                 .loteOrigenId(item.getLoteOrigen() != null ? item.getLoteOrigen().getId() : null)
                 .loteCodigoLote(item.getLoteOrigen() != null ? item.getLoteOrigen().getCodigoLote() : null)
+                .imagenUrl(imgUrl)
                 .build();
     }
 
