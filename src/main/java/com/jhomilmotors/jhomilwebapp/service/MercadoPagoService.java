@@ -33,7 +33,7 @@ public class MercadoPagoService {
     private final String NOTIFICATION_URL = "https://nonsocialistic-leaden-shaquana.ngrok-free.dev/api/v1/payments/webhook";
 
     // URL DE TU FRONTEND (REACT)
-    private final String FRONTEND_URL = "http://localhost:5173"; // O el puerto 3000 si usas CreateReactApp
+    private final String FRONTEND_URL = "https://jhomilweb.onrender.com"; // O el puerto 3000 si usas CreateReactApp
 
     public Preference crearPreferencia(String codigoPedido) throws Exception {
 

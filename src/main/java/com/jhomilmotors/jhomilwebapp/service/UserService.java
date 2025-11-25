@@ -299,7 +299,7 @@ public class UserService {
         emailVerificationTokenRepository.save(token);
 
         // Construir URL de verificación (ajusta tu dominio según entorno)
-        String baseUrl = "http://localhost:8080"; // o ajústalo dinámico para producción
+        String baseUrl = "https://jhomilweb.onrender.com"; // o ajústalo dinámico para producción
         String verifyUrl = baseUrl + "/api/auth/verify-email?token=" + tokenValue;
 
         // Llama al servicio de email

@@ -203,13 +203,13 @@ public class AuthController {
         if (tokenOpt.isEmpty()) {
             // Puedes redirigir a error si lo prefieres
             return ResponseEntity.status(302)
-                    .location(URI.create("http://localhost:5173/login?verified=false&reason=notfound"))
+                    .location(URI.create("https://jhomilwebfrontend.onrender.com//login?verified=false&reason=notfound"))
                     .build();
         }
         EmailVerificationToken evt = tokenOpt.get();
         if (evt.isUsed() || evt.getExpires().isBefore(LocalDateTime.now())) {
             return ResponseEntity.status(302)
-                    .location(URI.create("http://localhost:5173/login?verified=false&reason=expired"))
+                    .location(URI.create("https://jhomilwebfrontend.onrender.com//login?verified=false&reason=expired"))
                     .build();
         }
 
@@ -223,7 +223,7 @@ public class AuthController {
         emailVerificationTokenRepository.save(evt);
 
         return ResponseEntity.status(302)
-                .location(URI.create("http://localhost:5173/login?verified=true"))
+                .location(URI.create("https://jhomilwebfrontend.onrender.com//login?verified=true"))
                 .build();
     }
 
@@ -257,7 +257,7 @@ public class AuthController {
         EmailVerificationToken token = new EmailVerificationToken(tokenValue, user, now, expiresAt);
         emailVerificationTokenRepository.save(token);
 
-        String verifyUrl = "http://localhost:8080/api/auth/verify-email?token=" + tokenValue;
+        String verifyUrl = "https://jhomilweb.onrender.com/api/auth/verify-email?token=" + tokenValue;
         emailService.sendVerificationEmail(user.getEmail(), verifyUrl);
 
         return ResponseEntity.ok(Map.of("message", "Se ha reenviado el enlace de verificación. Revisa tu correo."));
