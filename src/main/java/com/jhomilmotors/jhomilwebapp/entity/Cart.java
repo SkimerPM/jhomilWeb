@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -32,9 +33,31 @@ public class Cart {
     @Column(name = "activo")
     private Boolean activo = true;
 
+    @Column(name = "cupon_codigo", length = 50)
+    private String cuponCodigo;
+
+    @Column(name = "descuento_global_aplicado")
+    private BigDecimal descuentoAplicado = BigDecimal.ZERO;
+
     // Relación inversa
     @OneToMany(mappedBy = "carrito", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CartItem> items;
+
+    public String getCuponCodigo() {
+        return cuponCodigo;
+    }
+
+    public void setCuponCodigo(String cuponCodigo) {
+        this.cuponCodigo = cuponCodigo;
+    }
+
+    public BigDecimal getDescuentoAplicado() {
+        return descuentoAplicado;
+    }
+
+    public void setDescuentoAplicado(BigDecimal descuentoAplicado) {
+        this.descuentoAplicado = descuentoAplicado;
+    }
 
     public Long getId() {
         return id;
