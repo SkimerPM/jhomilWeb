@@ -870,6 +870,7 @@ public class CatalogService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
     public List<LowStockResponseDTO> getLowStockProducts(int stockLimit) {
         List<ProductVariant> lowStockVariants = productVariantRepository.findByStockLessThanEqualAndActivoTrue(stockLimit);
 
