@@ -32,8 +32,9 @@ public class OrderService {
     private final BatchRepository batchRepository;
     private final UserRepository userRepository;
 
+
     /**
-     * Crea un pedido desde el carrito
+     * Crea un pedido desde el carrito (CORREGIDO)
      */
     @Transactional
     public OrderDTO createOrderFromCart(Long usuarioId, Long cartId, CreateOrderRequestDTO request) {
@@ -50,24 +51,32 @@ public class OrderService {
         // Generar código de pedido único
         String codigo = "PED-" + System.currentTimeMillis();
 
-        // Calcular totales
-        BigDecimal subtotal = BigDecimal.ZERO;
-        BigDecimal descuento = BigDecimal.ZERO; // TODO: Obtener de cupones aplicados
-        BigDecimal impuestos = BigDecimal.ZERO; // TODO: Calcular según configuración
-        BigDecimal costoEnvio = BigDecimal.ZERO; // TODO: Obtener de tarifa de envío
-        BigDecimal total = subtotal.add(impuestos).add(costoEnvio).subtract(descuento);
+        // -------------------------------------------------------
+        // 1. 🧮 CALCULADORA: Sumar los items ANTES de crear el pedido
+        // -------------------------------------------------------
+        BigDecimal subtotalCalculado = cart.getItems().stream()
+                .map(item -> item.getPrecioUnitarioSnapshot().multiply(BigDecimal.valueOf(item.getCantidad())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Crear pedido
+        BigDecimal descuento = BigDecimal.ZERO; // TODO: Obtener de cupones
+        BigDecimal impuestos = BigDecimal.ZERO; // TODO: Configuración
+        BigDecimal costoEnvio = BigDecimal.ZERO; // TODO: Tarifa envío
+
+        // Total Final Real
+        BigDecimal totalCalculado = subtotalCalculado.add(impuestos).add(costoEnvio).subtract(descuento);
+        // -------------------------------------------------------
+
+        // Crear pedido con los VALORES CALCULADOS
         Order order = Order.builder()
                 .usuario(usuario)
                 .codigo(codigo)
                 .fechaPedido(LocalDateTime.now())
                 .estado(OrderStatus.PENDIENTE)
-                .subtotal(subtotal)
+                .subtotal(subtotalCalculado) // <--- ¡AQUÍ USAMOS EL VALOR REAL!
                 .descuento(descuento)
                 .impuestos(impuestos)
                 .costoEnvio(costoEnvio)
-                .total(total)
+                .total(totalCalculado)       // <--- ¡AQUÍ TAMBIÉN!
                 .metodoPago(request.getMetodoPago())
                 .direccionEnvio(request.getDireccionEnvio())
                 .nota(request.getNota())
@@ -76,7 +85,7 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
-        // Crear items del pedido
+        // Crear items del pedido y mover inventario
         List<OrderItem> orderItems = cart.getItems().stream()
                 .map(cartItem -> {
                     ProductVariant variant = cartItem.getVariante();
