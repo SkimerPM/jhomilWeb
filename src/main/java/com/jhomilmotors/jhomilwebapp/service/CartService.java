@@ -404,23 +404,35 @@ public class CartService {
     // -------------------------------------------------------------------------
 
     private CartDTO convertToDTO(Cart cart) {
-        // Recalcular para asegurar consistencia visual
+        // 1. Calcular Subtotal
         BigDecimal subtotal = calculateSubtotal(cart);
 
-        // LEER ESTADO DESDE ENTIDAD (Persistencia)
+        // 2. Leer Descuento
         BigDecimal descuentoTotal = cart.getDescuentoAplicado() != null ? cart.getDescuentoAplicado() : BigDecimal.ZERO;
 
+        // 3. Base Imponible (Subtotal - Descuento)
         BigDecimal baseImponible = subtotal.subtract(descuentoTotal);
-        if (baseImponible.compareTo(BigDecimal.ZERO) < 0) baseImponible = BigDecimal.ZERO;
 
-        BigDecimal impuestos = baseImponible.multiply(new BigDecimal("0.18")).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal costoEnvio = BigDecimal.ZERO; // Implementar lógica de envío real si aplica
+        // Asegurar que la base imponible no sea negativa
+        if (baseImponible.compareTo(BigDecimal.ZERO) < 0) {
+            baseImponible = BigDecimal.ZERO;
+        }
+
+        // 4. IMPUESTOS A CERO (Lo que quieres)
+        BigDecimal impuestos = BigDecimal.ZERO;
+
+        // 5. Costo de envío (Sin cambios)
+        BigDecimal costoEnvio = BigDecimal.ZERO;
+
+        // 6. Calcular Total Final (Base Imponible + Impuestos CERO + Envío)
         BigDecimal total = baseImponible.add(impuestos).add(costoEnvio);
 
+        // Mapeo de items (sin cambios)
         List<CartItemDTO> itemDTOs = cart.getItems().stream()
                 .map(this::convertItemToDTO)
                 .collect(Collectors.toList());
 
+        // Mapeo de cupones (sin cambios)
         List<CartDTO.CuponAplicadoDTO> cuponesList = new ArrayList<>();
         if (cart.getCuponCodigo() != null) {
             cuponesList.add(CartDTO.CuponAplicadoDTO.builder()
@@ -430,6 +442,7 @@ public class CartService {
                     .build());
         }
 
+        // Construir DTO
         return CartDTO.builder()
                 .id(cart.getId())
                 .usuarioId(cart.getUsuario() != null ? cart.getUsuario().getId() : null)
@@ -440,7 +453,7 @@ public class CartService {
                 .items(itemDTOs)
                 .subtotal(subtotal)
                 .descuentoTotal(descuentoTotal)
-                .impuestos(impuestos)
+                .impuestos(impuestos) // Ahora es 0.00
                 .costoEnvio(costoEnvio)
                 .total(total)
                 .cuponesAplicados(cuponesList)
