@@ -68,4 +68,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             "FROM Product p " +
             "WHERE p.activo = true")
     List<ProductCatalogResponse> findAllCatalogProductsOptimized();
+
+    // ✅ NUEVO: Búsqueda para Admin (Nombre o SKU) insensible a mayúsculas
+    @Query("SELECT p FROM Product p WHERE " +
+            "(LOWER(p.nombre) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            "LOWER(p.skuBase) LIKE LOWER(CONCAT('%', :search, '%')))")
+    Page<Product> searchAdminProducts(@Param("search") String search, Pageable pageable);
 }
