@@ -58,9 +58,17 @@ public class CatalogService {
         return productRepository.findAllCatalogProductsOptimized();
     }
 
-    public Page<AdminProductListDTO> getAllAdminProductsPaged(Pageable pageable) {
-        return productRepository.findAll(pageable)
-                .map(AdminProductListDTO::fromEntity);
+    public Page<AdminProductListDTO> getAllAdminProductsPaged(String search, Pageable pageable) {
+
+        Page<Product> productPage;
+
+        if (search != null && !search.trim().isEmpty()) {
+            productPage = productRepository.searchAdminProducts(search.trim(), pageable);
+        } else {
+            productPage = productRepository.findAll(pageable);
+        }
+
+        return productPage.map(AdminProductListDTO::fromEntity);
     }
 
     public List<ProductVariant> findVariantsByProductId(Long productId) {
