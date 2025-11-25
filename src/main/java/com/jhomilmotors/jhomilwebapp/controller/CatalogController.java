@@ -397,4 +397,11 @@ public class CatalogController {
     }
 
 
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @GetMapping("/admin/low-stock")
+    public ResponseEntity<List<LowStockResponseDTO>> getLowStockProducts(
+            @RequestParam(defaultValue = "5") int limit) { // Por defecto avisa si hay 5 o menos
+        return ResponseEntity.ok(catalogService.getLowStockProducts(limit));
+    }
+
 }

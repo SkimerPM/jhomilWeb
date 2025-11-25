@@ -38,4 +38,6 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
 
     @Query("SELECT v FROM ProductVariant v WHERE LOWER(v.sku) LIKE LOWER(CONCAT('%', :q, '%'))")
     List<ProductVariant> buscarEnVariantes(@Param("q") String q);
+
+    List<ProductVariant> findByStockLessThanEqualAndActivoTrue(Integer stockLimit);
 }
