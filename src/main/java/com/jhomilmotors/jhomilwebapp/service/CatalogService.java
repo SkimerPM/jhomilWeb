@@ -353,8 +353,58 @@ public class CatalogService {
         return productRepository.searchByNombreOrDescripcion(nombre, pageable);
     }
 
-    public List<ProductVariant> buscarEnVariantes(String q) {
-        return productVariantRepository.buscarEnVariantes(q);
+    @Transactional(readOnly = true) // Importante para que Hibernate mantenga la sesión abierta
+    public List<ProductVariantDTO> buscarEnVariantes(String q) {
+        // 1. Traemos Variantes + Producto + Atributos
+        List<ProductVariant> variantes = productVariantRepository.buscarConAtributos(q);
+
+        // 2. Si encontramos algo, cargamos las imágenes en una segunda consulta
+        // Hibernate "inyectará" las imágenes en la lista 'variantes' que ya tenemos en memoria.
+        if (!variantes.isEmpty()) {
+            productVariantRepository.cargarImagenes(variantes);
+        }
+
+        // 3. Convertimos a DTO (igual que antes)
+        return variantes.stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+    private ProductVariantDTO mapToDTO(ProductVariant entity) {
+        if (entity == null) return null;
+
+        return ProductVariantDTO.builder()
+                .id(entity.getId())
+                .sku(entity.getSku())
+                .precio(entity.getPrecio())
+                .stock(entity.getStock())
+                .activo(entity.getActivo())
+                .pesoKg(entity.getPesoKg())
+
+                // Mapeo del Padre (Product) para evitar el bucle
+                .productoId(entity.getProduct() != null ? entity.getProduct().getId() : null)
+                .productoNombre(entity.getProduct() != null ? entity.getProduct().getNombre() : "Desconocido") // Asumo que Product tiene getNombre()
+
+                // Mapeo de la lista de Atributos
+                .atributos(entity.getAtributos() != null ?
+                        entity.getAtributos().stream().map(attr -> ProductVariantDTO.VarianteAtributoDTO.builder()
+                                .id(attr.getId())
+                                // NOTA: Ajusta estos getters según tu entidad real VariantAttribute
+                                .atributoNombre(attr.getAttribute().getNombre()) // o attr.getAttribute().getNombre()
+                                .valorTexto(attr.getValorText())
+                                // .valorNum(attr.getValorNum()) // Si existe
+                                .build()
+                        ).collect(Collectors.toList()) : Collections.emptyList())
+
+                // Mapeo de la lista de Imágenes
+                .imagenes(entity.getImagenes() != null ?
+                        entity.getImagenes().stream().map(img -> ProductVariantDTO.ImagenResponse.builder()
+                                .id(img.getId())
+                                .url(img.getUrl())
+                                .orden(img.getOrden()) // Si existe en tu entidad Image
+                                .esPrincipal(img.getEsPrincipal()) // Si existe
+                                .build()
+                        ).collect(Collectors.toList()) : Collections.emptyList())
+                .build();
     }
 
     @Transactional
