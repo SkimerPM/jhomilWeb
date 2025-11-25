@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -64,4 +65,14 @@ public class Product {
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true) // orphanRemoval=true es CLAVE
     private List<ProductAttribute> atributos = new java.util.ArrayList<>();
 
+
+    // Agregamos esto para que al borrar el producto, se borren sus apariciones en promociones
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.REMOVE)
+    @ToString.Exclude
+    private List<PromotionProduct> participacionesEnPromociones;
+
+    // Opcional: Si quieres que también borre si el producto es el "productoGratis"
+    @OneToMany(mappedBy = "productoGratis", cascade = CascadeType.REMOVE)
+    @ToString.Exclude
+    private List<PromotionProduct> participacionesComoGratis;
 }
