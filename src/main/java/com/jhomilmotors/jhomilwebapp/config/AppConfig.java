@@ -22,7 +22,7 @@ public class AppConfig  implements WebMvcConfigurer {
                         "http://localhost:5173",          // desarrollo
                         "https://jhomilwebfrontend.onrender.com" // producción
                 )
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 .allowCredentials(true)
                 .allowedHeaders("*")
                 .exposedHeaders("Set-Cookie")
