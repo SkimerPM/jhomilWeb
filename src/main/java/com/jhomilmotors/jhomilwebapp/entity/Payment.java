@@ -32,10 +32,12 @@ public class Payment {
     @Column(name = "monto", precision = 12, scale = 2, nullable = false)
     private BigDecimal monto;
 
-    @Column(name = "fecha_pago")
+    @Column(name = "fecha_pago", nullable = false)
+    @Builder.Default
     private LocalDateTime fechaPago = LocalDateTime.now();
 
     @Column(name = "estado", length = 20, nullable = false)
+    @Builder.Default
     @Convert(converter = com.jhomilmotors.jhomilwebapp.converter.PaymentStatusConverter.class)
     private PaymentStatus estado = PaymentStatus.PENDIENTE;
 
