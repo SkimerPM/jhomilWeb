@@ -297,9 +297,10 @@ public class CatalogController {
     @GetMapping("/admin/products")
     public Page<AdminProductListDTO> getAllAdminProductsPaged(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String name) {
         Pageable pageable = PageRequest.of(page, size);
-        return catalogService.getAllAdminProductsPaged(pageable);
+        return catalogService.getAllAdminProductsPaged(name, pageable);
     }
 
 
