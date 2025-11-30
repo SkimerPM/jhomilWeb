@@ -257,7 +257,7 @@ public class AuthController {
         EmailVerificationToken token = new EmailVerificationToken(tokenValue, user, now, expiresAt);
         emailVerificationTokenRepository.save(token);
 
-        String verifyUrl = "https://jhomilweb.onrender.com/api/auth/verify-email?token=" + tokenValue;
+        String verifyUrl = "http://localhost:8080/api/auth/verify-email?token=" + tokenValue;
         emailService.sendVerificationEmail(user.getEmail(), verifyUrl);
 
         return ResponseEntity.ok(Map.of("message", "Se ha reenviado el enlace de verificación. Revisa tu correo."));
