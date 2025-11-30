@@ -263,4 +263,38 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "Se ha reenviado el enlace de verificación. Revisa tu correo."));
     }
 
+    @PostMapping("/google")
+    public ResponseEntity<?> googleLogin(@RequestBody GoogleTokenDto tokenDto) {
+        try {
+            // 1. Llamamos al Servicio (Toda la lógica pesada ocurre allá)
+            User user = userService.loginWithGoogleMobile(tokenDto.getIdToken());
+
+            // 2. Generamos los Tokens JWT (Responsabilidad del AuthController/JwtUtil)
+            String subject = (user.getGoogleId() != null && !user.getGoogleId().isBlank())
+                    ? user.getGoogleId() : user.getEmail();
+
+            Map<String, Object> claims = Map.of("role", user.getRol().getNombre().name());
+            String accessToken = jwtUtil.generateToken(claims, subject);
+
+            // Generar Refresh Token
+            RefreshToken refreshTokenObj = refreshTokenService.createRefreshToken(user);
+
+            // 3. Responder
+            AuthResponseDTO dto = new AuthResponseDTO(
+                    accessToken,
+                    user.getEmail(),
+                    user.getRol().getNombre().name()
+            );
+            dto.setRefreshToken(refreshTokenObj.getToken());
+
+            return ResponseEntity.ok(dto);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Error en autenticación Google"));
+        }
+    }
+
 }

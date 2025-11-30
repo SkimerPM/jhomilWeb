@@ -61,6 +61,7 @@ public class SecurityConfig {
                         // Auth pública
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/google").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
                         .requestMatchers("/api/auth/resend-verification").permitAll()
                         .requestMatchers("/api/auth/verify-email").permitAll()

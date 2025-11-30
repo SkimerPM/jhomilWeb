@@ -20,6 +20,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import org.springframework.beans.factory.annotation.Value;
+import java.util.Collections;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+
 @Service
 public class UserService {
 
@@ -281,6 +290,78 @@ public class UserService {
     public Long getUserIdFromAuthentication(Authentication authentication) {
         User user = getUserFromAuthentication(authentication);
         return user.getId();
+    }
+
+    @Value("${spring.security.oauth2.client.registration.google.client-id}")
+    private String googleClientId;
+
+    /**
+     * Valida el token de Android con Google y devuelve el Usuario (existente o nuevo).
+     */
+    public User loginWithGoogleMobile(String idTokenString) {
+        try {
+            // 1. Configurar Verificador
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                    .setAudience(Collections.singletonList(googleClientId))
+                    .build();
+
+            // 2. Verificar Token
+            GoogleIdToken idToken = verifier.verify(idTokenString);
+
+            if (idToken == null) {
+                throw new IllegalArgumentException("Token de Google inválido o expirado");
+            }
+
+            // 3. Extraer datos
+            GoogleIdToken.Payload payload = idToken.getPayload();
+            String email = payload.getEmail();
+            String googleId = payload.getSubject();
+            String name = (String) payload.get("name");
+            String givenName = (String) payload.get("given_name");
+            String familyName = (String) payload.get("family_name");
+
+            // 4. Lógica de Buscar o Crear (Reutilizamos lógica parecida a processOAuthPostLogin pero devolviendo el User)
+            Optional<User> existUser = userRepository.findByEmail(email);
+
+            User user;
+            if (existUser.isEmpty()) {
+                // --- CREAR NUEVO ---
+                user = new User();
+                Role customerRole = roleRepository.findByNombre(RoleName.CUSTOMER)
+                        .orElseThrow(() -> new EntityNotFoundException("Rol CUSTOMER no encontrado"));
+
+                user.setEmail(email);
+                // Usamos el nombre separado si existe, si no, el completo
+                user.setNombre(givenName != null ? givenName : name);
+                user.setApellido(familyName != null ? familyName : "");
+                user.setRol(customerRole);
+                user.setMetodoRegistro(RegistrationMethod.GOOGLE);
+                user.setGoogleId(googleId);
+                user.setEmailVerificado(true); // Google ya verificó
+                user.setActivo(true);
+                user.setFechaRegistro(LocalDateTime.now());
+                user.setPasswordHash(""); // Sin pass
+
+                user = userRepository.save(user);
+            } else {
+                // --- ACTUALIZAR EXISTENTE ---
+                user = existUser.get();
+                // Vinculamos cuenta si no lo estaba
+                if (user.getGoogleId() == null || !user.getGoogleId().equals(googleId)) {
+                    user.setGoogleId(googleId);
+                    user.setMetodoRegistro(RegistrationMethod.GOOGLE);
+                    user.setEmailVerificado(true);
+                    userRepository.save(user);
+                }
+                // Actualizar último acceso
+                updateLastAccess(user.getId());
+            }
+
+            return user;
+
+        } catch (GeneralSecurityException | IOException e) {
+            throw new RuntimeException("Error verificando token de Google: " + e.getMessage());
+        }
     }
 
     // ============================
