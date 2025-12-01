@@ -1,5 +1,6 @@
 package com.jhomilmotors.jhomilwebapp.controller;
 
+import com.jhomilmotors.jhomilwebapp.dto.ProductOnSaleDTO;
 import com.jhomilmotors.jhomilwebapp.dto.PromotionProductDTO;
 import com.jhomilmotors.jhomilwebapp.service.PromotionProductService;
 import lombok.RequiredArgsConstructor;
@@ -213,6 +214,17 @@ public class PromotionProductController {
     @GetMapping("/variant/{variantId}")
     public ResponseEntity<List<PromotionProductDTO>> getPromosByVariant(@PathVariable Long variantId) {
         return ResponseEntity.ok(service.getPromotionsByVariantId(variantId));
+    }
+
+    /**
+     * Endpoint optimizado para la App Móvil.
+     * Retorna productos en oferta activos con precios ya calculados.
+     * GET /api/promotion-products/on-sale?page=0&size=10
+     */
+    @GetMapping("/on-sale")
+    public ResponseEntity<Page<ProductOnSaleDTO>> getProductsOnSale(Pageable pageable) {
+        Page<ProductOnSaleDTO> result = service.getProductsOnSale(pageable);
+        return ResponseEntity.ok(result);
     }
 
 }

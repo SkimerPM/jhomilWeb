@@ -7,8 +7,11 @@ import com.jhomilmotors.jhomilwebapp.entity.PromotionProduct;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -67,4 +70,21 @@ public interface PromotionProductRepository extends JpaRepository<PromotionProdu
     Page<PromotionProduct> findByPromocionId(Long promocionId, Pageable pageable);
     Page<PromotionProduct> findByProductoId(Long productoId, Pageable pageable);
 
+
+    /**
+     * Query optimizada para Ofertas Activas.
+     * 1. Filtra por estado activo de Promo, Producto y Variante.
+     * 2. Filtra por rango de fechas (considerando nulos como "siempre válido").
+     * 3. Hace FETCH de las relaciones para evitar N+1 queries.
+     */
+    @Query("SELECT pp FROM PromotionProduct pp " +
+            "JOIN FETCH pp.promocion promo " +
+            "JOIN FETCH pp.producto prod " +
+            "LEFT JOIN FETCH pp.variante var " +
+            "WHERE promo.activo = true " +
+            "AND (promo.fechaInicio IS NULL OR promo.fechaInicio <= :now) " +
+            "AND (promo.fechaFin IS NULL OR promo.fechaFin >= :now) " +
+            "AND prod.activo = true " +
+            "AND (var IS NULL OR var.activo = true)")
+    Page<PromotionProduct> findActiveOnSaleProducts(@Param("now") LocalDateTime now, Pageable pageable);
 }

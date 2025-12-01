@@ -1,10 +1,8 @@
 package com.jhomilmotors.jhomilwebapp.service;
 
+import com.jhomilmotors.jhomilwebapp.dto.ProductOnSaleDTO;
 import com.jhomilmotors.jhomilwebapp.dto.PromotionProductDTO;
-import com.jhomilmotors.jhomilwebapp.entity.Product;
-import com.jhomilmotors.jhomilwebapp.entity.ProductVariant;
-import com.jhomilmotors.jhomilwebapp.entity.Promotion;
-import com.jhomilmotors.jhomilwebapp.entity.PromotionProduct;
+import com.jhomilmotors.jhomilwebapp.entity.*;
 import com.jhomilmotors.jhomilwebapp.exception.ResourceNotFoundException;
 import com.jhomilmotors.jhomilwebapp.repository.ProductRepository;
 import com.jhomilmotors.jhomilwebapp.repository.ProductVariantRepository;
@@ -15,6 +13,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -264,6 +266,103 @@ public class PromotionProductService {
     public List<PromotionProductDTO> getPromotionsByVariantId(Long variantId) {
         return promotionProductRepository.findByVarianteId(variantId)
                 .stream().map(this::toDTO).collect(Collectors.toList());
+    }
+
+    // ==========================================
+    // NUEVA LÓGICA PARA APP MÓVIL (OFERTAS)
+    // ==========================================
+
+    @Transactional(readOnly = true)
+    public Page<ProductOnSaleDTO> getProductsOnSale(Pageable pageable) {
+        LocalDateTime now = LocalDateTime.now();
+        // 1. Buscamos las entidades con la query optimizada
+        Page<PromotionProduct> entities = promotionProductRepository.findActiveOnSaleProducts(now, pageable);
+
+        // 2. Transformamos a DTO calculando precios
+        return entities.map(this::mapToOnSaleDTO);
+    }
+
+    private ProductOnSaleDTO mapToOnSaleDTO(PromotionProduct pp) {
+        Product product = pp.getProducto();
+        ProductVariant variant = pp.getVariante();
+        Promotion promo = pp.getPromocion();
+
+        // A. Determinar Precio Base, Nombre y SKU
+        BigDecimal originalPrice;
+        String displayName;
+        String sku;
+        Long variantId = null;
+
+        // Si la oferta es a una variante específica, usamos sus datos.
+        // Si no, usamos los del producto base.
+        if (variant != null) {
+            originalPrice = variant.getPrecio();
+            displayName = product.getNombre(); // Podrías concatenar atributos si quisieras
+            sku = variant.getSku();
+            variantId = variant.getId();
+        } else {
+            originalPrice = product.getPrecioBase();
+            displayName = product.getNombre();
+            sku = product.getSkuBase();
+        }
+
+        // Evitar NullPointer en precio
+        if (originalPrice == null) originalPrice = BigDecimal.ZERO;
+
+        // B. Calcular Descuento y Precio Final
+        BigDecimal discountAmount = BigDecimal.ZERO;
+
+        // Switch basado en tu Enum DiscountType
+        switch (promo.getTipoDescuento()) {
+            case PORCENTAJE:
+                // Cálculo: Precio * (Porcentaje / 100)
+                discountAmount = originalPrice.multiply(promo.getValorDescuento())
+                        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                break;
+            case MONTO_FIJO:
+                // Cálculo: Descuento directo
+                discountAmount = promo.getValorDescuento();
+                break;
+            case DOS_POR_UNO:
+                // En 2x1, el precio unitario se muestra igual, la oferta es llevarse otro.
+                // Opcional: Si quieres mostrar precio efectivo, descomenta abajo.
+                // discountAmount = originalPrice.divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP);
+                discountAmount = BigDecimal.ZERO;
+                break;
+        }
+
+        // Precio final = Original - Descuento (Mínimo 0)
+        BigDecimal finalPrice = originalPrice.subtract(discountAmount).max(BigDecimal.ZERO);
+
+        // C. Obtener Imagen Principal
+        // Prioridad: Imagen de Variante > Imagen de Producto
+        String imageUrl = null;
+        List<Image> imagesToCheck = (variant != null && variant.getImagenes() != null && !variant.getImagenes().isEmpty())
+                ? variant.getImagenes()
+                : product.getImagenes();
+
+        if (imagesToCheck != null && !imagesToCheck.isEmpty()) {
+            imageUrl = imagesToCheck.stream()
+                    .filter(img -> Boolean.TRUE.equals(img.getEsPrincipal()))
+                    .findFirst()
+                    .map(Image::getUrl)
+                    .orElse(imagesToCheck.get(0).getUrl()); // Fallback a la primera imagen
+        }
+
+        // D. Construir DTO
+        return ProductOnSaleDTO.builder()
+                .promotionProductId(pp.getId())
+                .productId(product.getId())
+                .variantId(variantId)
+                .productName(displayName)
+                .sku(sku)
+                .imageUrl(imageUrl)
+                .promotionLabel(promo.getNombre())
+                .discountType(promo.getTipoDescuento().getValue()) // Usamos .getValue() del Enum
+                .originalPrice(originalPrice)
+                .discountAmount(discountAmount)
+                .finalPrice(finalPrice)
+                .build();
     }
 
 }
