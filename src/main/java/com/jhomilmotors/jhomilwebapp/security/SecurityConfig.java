@@ -74,6 +74,9 @@ public class SecurityConfig {
                         // Carrito (público o híbrido según tu lógica)
                         .requestMatchers("/api/v1/cart/**").permitAll()
 
+                        //Content WebView
+                        .requestMatchers("/api/content/**").permitAll()
+
                         // Promociones (GET público, gestión ADMIN)
                         .requestMatchers(HttpMethod.GET, "/api/promotions/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/promotions/**").hasAuthority("ROLE_ADMIN")
