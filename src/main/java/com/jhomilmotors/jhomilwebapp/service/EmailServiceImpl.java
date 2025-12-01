@@ -14,15 +14,24 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public void sendVerificationEmail(String to, String verificationLink) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(to);
-        message.setSubject("Verifica tu correo para activar tu cuenta");
-        message.setText(
-                "¡Gracias por registrarte!\n\n" +
-                        "Por favor haz clic en el siguiente enlace para verificar tu cuenta (o pégalo en el navegador):\n\n" +
-                        verificationLink +
-                        "\n\nSi no creaste una cuenta, ignora este correo."
-        );
-        mailSender.send(message);
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom("jhomilmotors@gmail.com");
+            message.setTo(to);
+            message.setSubject("Verifica tu correo - Jhomil Motors");
+            message.setText(
+                    "¡Gracias por registrarte!\n\n" +
+                            "Por favor haz clic en el siguiente enlace para verificar tu cuenta:\n\n" +
+                            verificationLink +
+                            "\n\nSi no creaste una cuenta, ignora este correo."
+            );
+
+            mailSender.send(message);
+            System.out.println("Correo enviado a: " + to);
+
+        } catch (Exception e) {
+            System.err.println("Error enviando correo en segundo plano: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }
