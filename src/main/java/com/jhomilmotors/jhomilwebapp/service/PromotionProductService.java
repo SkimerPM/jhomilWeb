@@ -97,6 +97,30 @@ public class PromotionProductService {
         pp.setCantidadGratis(dto.getCantidadGratis() != null ? dto.getCantidadGratis() : 1);
 
         PromotionProduct saved = promotionProductRepository.save(pp);
+
+        // Si la promoción fue creada a nivel PRODUCTO (product != null) y no se especificó variante,
+        // propagamos la promoción a las variantes activas del producto evitando duplicados.
+        if (product != null && variant == null) {
+            List<ProductVariant> variants = productVariantRepository.findByProductIdAndActivoTrue(product.getId());
+            List<PromotionProduct> existingForPromo = promotionProductRepository.findByPromocionId(promotion.getId());
+
+            for (ProductVariant v : variants) {
+                boolean exists = existingForPromo.stream()
+                        .anyMatch(ppExist -> ppExist.getVariante() != null && ppExist.getVariante().getId().equals(v.getId()));
+                if (!exists) {
+                    PromotionProduct vpp = new PromotionProduct();
+                    vpp.setPromocion(promotion);
+                    vpp.setProducto(product);
+                    vpp.setVariante(v);
+                    vpp.setProductoGratis(productGratis);
+                    vpp.setVarianteGratis(variantGratis);
+                    vpp.setCantidadRequerida(pp.getCantidadRequerida());
+                    vpp.setCantidadGratis(pp.getCantidadGratis());
+                    promotionProductRepository.save(vpp);
+                }
+            }
+        }
+
         return toDTO(saved);
     }
 
