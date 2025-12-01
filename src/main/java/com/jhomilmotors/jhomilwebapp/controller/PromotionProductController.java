@@ -2,6 +2,8 @@ package com.jhomilmotors.jhomilwebapp.controller;
 
 import com.jhomilmotors.jhomilwebapp.dto.ProductOnSaleDTO;
 import com.jhomilmotors.jhomilwebapp.dto.PromotionProductDTO;
+import com.jhomilmotors.jhomilwebapp.dto.SearchResultDTO;
+import com.jhomilmotors.jhomilwebapp.service.SearchService;
 import com.jhomilmotors.jhomilwebapp.service.PromotionProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -18,6 +20,7 @@ import java.util.List; // Mantenemos la importación aunque no se use en los mé
 public class PromotionProductController {
 
     private final PromotionProductService service;
+    private final SearchService searchService;
 
     // -------------------------------------------------------------------
     // CRUD Básico Estandarizado con ResponseEntity
@@ -94,6 +97,20 @@ public class PromotionProductController {
 
         Page<PromotionProductDTO> resultPage = service.getProductsByPromotionId(promotionId, pageable);
         return ResponseEntity.ok(resultPage);
+    }
+
+    /**
+     * Nuevo endpoint: búsqueda para la UI de asignar promociones.
+     * Retorna productos y variantes como sugerencias.
+     * GET /api/promotion-products/search?q=texto
+     */
+    @GetMapping("/search")
+    public ResponseEntity<List<SearchResultDTO>> search(@RequestParam("q") String q) {
+        if (q == null || q.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(List.of());
+        }
+        List<SearchResultDTO> results = searchService.search(q.trim());
+        return ResponseEntity.ok(results);
     }
 
     // -------------------------------
