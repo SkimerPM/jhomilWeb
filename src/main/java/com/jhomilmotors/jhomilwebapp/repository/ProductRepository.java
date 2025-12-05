@@ -74,4 +74,25 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             "(LOWER(p.nombre) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(p.skuBase) LIKE LOWER(CONCAT('%', :search, '%')))")
     Page<Product> searchAdminProducts(@Param("search") String search, Pageable pageable);
+
+    /**
+     * ✅ VERSIÓN PAGINADA OPTIMIZADA:
+     * Trae solo la página solicitada ya convertida a DTO.
+     * Evita cargar entidades pesadas y el problema N+1.
+     */
+    @Query("SELECT new com.jhomilmotors.jhomilwebapp.dto.ProductCatalogResponse(" +
+            "  p.id, " +
+            "  p.nombre, " +
+            "  p.descripcion, " +
+            "  COALESCE((SELECT min(v.precio) FROM ProductVariant v WHERE v.product = p AND v.activo = true), p.precioBase), " +
+            "  COALESCE((SELECT CAST(SUM(v.stock) AS long) FROM ProductVariant v WHERE v.product = p AND v.activo = true), 0L), " +
+            "  (SELECT i.url FROM Image i WHERE i.product = p AND i.esPrincipal = true), " +
+            "  p.category.id, " +
+            "  p.category.nombre, " +
+            "  p.brand.id, " +
+            "  p.brand.nombre " +
+            ") " +
+            "FROM Product p " +
+            "WHERE p.activo = true")
+    Page<ProductCatalogResponse> findCatalogFeedOptimized(Pageable pageable);
 }

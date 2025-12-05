@@ -901,5 +901,11 @@ public class CatalogService {
                     .build();
         }).collect(Collectors.toList());
     }
+    // Método para el Feed Infinito del Móvil
+    @Transactional(readOnly = true)
+    public Page<ProductCatalogResponse> getCatalogFeed(Pageable pageable) {
+        // Llama a la query JPQL optimizada que devuelve directamente el DTO paginado
+        return productRepository.findCatalogFeedOptimized(pageable);
+    }
 
 }

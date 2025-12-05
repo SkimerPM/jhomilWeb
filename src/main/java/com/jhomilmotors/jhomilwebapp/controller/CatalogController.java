@@ -404,4 +404,14 @@ public class CatalogController {
         return ResponseEntity.ok(catalogService.getLowStockProducts(limit));
     }
 
+    /**
+     * Endpoint Feed: Productos activos, paginados y ligeros.
+     * GET /api/v1/catalog/feed?page=0&size=10
+     */
+    @GetMapping("/feed")
+    public ResponseEntity<Page<ProductCatalogResponse>> getCatalogFeed(
+            @PageableDefault(size = 10) Pageable pageable) {
+        return ResponseEntity.ok(catalogService.getCatalogFeed(pageable));
+    }
+
 }
