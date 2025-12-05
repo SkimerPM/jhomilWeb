@@ -223,7 +223,7 @@ public class AuthController {
         emailVerificationTokenRepository.save(evt);
 
         return ResponseEntity.status(302)
-                .location(URI.create("https://jhomilwebfrontend.onrender.com//login?verified=true"))
+                .location(URI.create("https://jhomilwebfrontend.onrender.com/login?verified=true"))
                 .build();
     }
 

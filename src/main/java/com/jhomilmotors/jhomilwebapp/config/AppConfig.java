@@ -15,13 +15,24 @@ public class AppConfig  implements WebMvcConfigurer {
         return new BCryptPasswordEncoder();
     }
 
+//    @Override
+//    public void addCorsMappings(CorsRegistry registry) {
+//        registry.addMapping("/api/**")
+//                .allowedOrigins(
+//                        "http://localhost:5173",          // desarrollo
+//                        "https://jhomilwebfrontend.onrender.com", // producción,
+//                        "https://onita-mensural-hoyt.ngrok-free.dev"
+//                )
+//                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
+//                .allowCredentials(true)
+//                .allowedHeaders("*")
+//                .exposedHeaders("Set-Cookie")
+//                .maxAge(3600);
+//    }
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOrigins(
-                        "http://localhost:5173",          // desarrollo
-                        "https://jhomilwebfrontend.onrender.com" // producción
-                )
+                .allowedOriginPatterns("*")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 .allowCredentials(true)
                 .allowedHeaders("*")
