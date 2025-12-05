@@ -19,8 +19,10 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
      */
     Optional<ProductVariant> findFirstByProductAndActivoTrueOrderByPrecioAsc(Product product);
 
-    @Query("SELECT v FROM ProductVariant v WHERE " +
-            "LOWER(v.sku) LIKE LOWER(CONCAT('%', :q, '%'))")
+    @Query("SELECT v FROM ProductVariant v " +
+            "JOIN v.product p WHERE " +
+            "LOWER(v.sku) LIKE LOWER(CONCAT('%', :q, '%')) " +
+            "OR LOWER(p.nombre) LIKE LOWER(CONCAT('%', :q, '%'))")
     List<ProductVariant> buscarTextoVariantes(@Param("q") String q);
 
 
