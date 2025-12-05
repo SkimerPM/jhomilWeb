@@ -136,7 +136,8 @@ public class SecurityConfig {
         // Lista de orígenes permitidos (Localhost y Producción)
         configuration.setAllowedOrigins(Arrays.asList(
                 "http://localhost:5173",                   // Frontend Local
-                "https://jhomilwebfrontend.onrender.com"   // Frontend Producción
+                "https://jhomilwebfrontend.onrender.com",   // Frontend Producción
+                "*"
         ));
 
         // Métodos HTTP permitidos
